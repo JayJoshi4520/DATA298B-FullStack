@@ -1,0 +1,144 @@
+##################################################################################################
+# This Compose file is intended to be used in the development of Labspace content.
+#
+# Set $CONTENT_PATH to point to the path of your Labspace content (e.g. ./content)
+##################################################################################################
+
+services:
+  configurator:
+    image: dockersamples/labspace-configurator:latest
+    volumes:
+      - content:/project
+      - support-vscode-extension:/etc/support-extension
+    environment:
+      DEV_MODE: true
+
+  interface:
+    image: dockersamples/labspace-interface:latest
+    ports:
+      - "3030:3030"
+    volumes:
+      - ${CONTENT_PATH}:/project
+      - type: volume
+        source: support-vscode-extension
+        target: /etc/cmd-executor/private-key
+        volume:
+          subpath: private-key
+      - type: volume
+        source: support-vscode-extension
+        target: /etc/cmd-executor/socket
+        volume:
+          subpath: socket
+    environment:
+      CONTENT_DEV_MODE: true
+    depends_on:
+      workspace:
+        condition: service_started
+      configurator:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  workspace:
+    image: dockersamples/labspace-workspace-node:latest
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+      socket-proxy:
+        condition: service_started
+    ports:
+      - 8085:8085 # For the IDE itself
+      - 3000:3000 # For the Node application running in the IDE
+    volumes:
+      - socket-proxy:/var/run
+      - ${CONTENT_PATH}:/home/coder/project
+      - type: volume
+        source: support-vscode-extension
+        target: /etc/cmd-executor/public-key
+        volume:
+          subpath: public-key
+      - type: volume
+        source: support-vscode-extension
+        target: /etc/cmd-executor/socket
+        volume:
+          subpath: socket
+
+
+  host-republisher:
+    image: dockersamples/labspace-host-port-republisher:latest
+    volumes:
+      - socket-proxy:/var/run
+    network_mode: service:workspace
+    environment:
+      LABEL_FILTER: labspace-resource=true
+    depends_on:
+      - workspace
+      - socket-proxy
+
+  workspace-cleaner:
+    image: dockersamples/labspace-cleaner:latest
+    volumes:
+      - socket-proxy:/var/run
+    environment:
+      LABEL_FILTER: labspace-resource=true
+    depends_on:
+      - socket-proxy
+
+  socket-proxy:
+    image: mikesir87/docker-socket-proxy:v1.2.1
+    volumes:
+      - socket-proxy:/tmp/proxy
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DEBUG_LOGS: "true"
+      CONFIG_DATA: |
+        mutators:
+          # Remap the project directory to the labspace content volume, since the project
+          # is running out of a volume.
+          - type: mountPath
+            from: /home/coder/project
+            to: ${CONTENT_PATH}
+
+          # If requests to use the Docker Socket are used (such as Testcontainers),
+          # use the proxied one to ensure permissions, remappings, etc. are applied
+          - type: mountPath
+            from: /var/run/docker.sock
+            to: labspace-socket-proxy/docker.sock
+
+          # Add labels to all newly created objects
+          - type: addLabels
+            labels:
+              labspace-resource: "true"
+
+          - type: addToNetwork
+            networks:
+              - labspace
+        # gates:
+        #   - type: mountSource
+        #     allowedSources:
+        #       - labspace-content
+        #       - labspace-socket-proxy
+        #       - buildx_buildkit_default_state
+        #       - ${CONTENT_PATH}
+
+        responseFilters:
+          # Only return objects with the labels we mutated on
+          - type: labelFilter
+            objectsToFilter:
+              - containers
+              - volumes
+              - networks
+            requiredLabels:
+              labspace-resource: "true"
+      LISTEN_SOCKET_PATH: /tmp/proxy/docker.sock
+
+volumes:
+  socket-proxy:
+    name: labspace-socket-proxy
+  content:
+    name: labspace-content
+  support-vscode-extension:
+
+networks:
+  default:
+    name: labspace
+
