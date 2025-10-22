@@ -26,7 +26,8 @@ export class Config {
 
         gemini: {
           enabled: !!process.env.GEMINI_API_KEY || true, // Enable by default
-          apiKey: process.env.GEMINI_API_KEY || "AIzaSyBW2FEeq29I8V9G6it57W2r6CbijEr81bQ",
+          apiKey:
+            process.env.GEMINI_API_KEY || "Put YOUR_GEMINI_KEY in config.js",
           model: process.env.GEMINI_MODEL || "gemini-2.5-pro", // Fix: Use correct model name
           baseURL:
             process.env.GEMINI_BASE_URL ||
