@@ -1,0 +1,107 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f4f4f4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.calculator {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 300px;
+  background-color: #333;
+  box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+  overflow: hidden; /* Ensures rounded corners are respected for children */
+}
+
+.calculator-display {
+  padding: 20px;
+  font-size: 2.5em;
+  background-color: #222;
+  color: #fff;
+  text-align: right;
+  border-bottom: 1px solid #444;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.calculator-keys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background-color: #444; /* Gutter color */
+}
+
+.calculator-keys button {
+  height: 60px;
+  font-size: 1.5em;
+  border: none;
+  background-color: #e0e0e0;
+  color: #333;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s;
+}
+
+.calculator-keys button:hover {
+  background-color: #d0d0d0;
+}
+
+.calculator-keys button:active {
+  background-color: #c0c0c0;
+}
+
+.operator {
+  background-color: #f79234;
+  color: #fff;
+}
+
+.operator:hover {
+  background-color: #f2821a;
+}
+
+.operator:active {
+  background-color: #e6750f;
+}
+
+.all-clear {
+  background-color: #d15a5a;
+  color: #fff;
+}
+
+.all-clear:hover {
+  background-color: #c74d4d;
+}
+
+.all-clear:active {
+  background-color: #b84343;
+}
+
+.equal-sign {
+  background-color: #3a8ee0;
+  grid-column: span 1; /* Adjust if other buttons also span */
+}
+
+.equal-sign:hover {
+  background-color: #2d7cd4;
+}
+
+.equal-sign:active {
+  background-color: #226dc8;
+}
+
+.zero-btn {
+  grid-column: span 2; /* Span two columns */
+}

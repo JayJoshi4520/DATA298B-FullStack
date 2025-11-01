@@ -1,0 +1,52 @@
+.ecp-header {
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid #1E2633;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+#external-content-tabs {
+  .nav-link {
+    color: #BFD6E6;
+    border: none !important;
+    position: relative;
+    transition: color 150ms ease;
+
+    &:hover { color: #E6F7FF; }
+
+    &.active {
+      color: #FFFFFF;
+
+      &::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: -6px;
+        height: 2px;
+        background: linear-gradient(90deg, #00FFFF, #12B0FF);
+        box-shadow: 0 0 12px rgba(18,176,255,0.45);
+        border-radius: 2px;
+      }
+    }
+  }
+
+  button {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(18,176,255,0.18);
+    color: #A9CFE6;
+    transition: box-shadow 150ms ease, background 150ms ease, color 150ms ease;
+
+    &:hover,
+    &:focus {
+      background-color: rgba(18,176,255,0.1);
+      color: #FFFFFF;
+      box-shadow: 0 0 12px rgba(18,176,255,0.35);
+    }
+
+    span {
+      position: relative;
+      top: 1px;
+    }
+  }
+}

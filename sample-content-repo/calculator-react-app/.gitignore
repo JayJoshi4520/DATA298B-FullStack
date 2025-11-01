@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+.yarn/install-state.gz
+
+# Runtime data
+.vscode-test-install
+.vscode-test-install-darwin
+.vscode-test-install-linux
+.vscode-test-install-win32
+
+# Dependencies
+node_modules/
+/dist/
+/build/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.bak
+*.swo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
