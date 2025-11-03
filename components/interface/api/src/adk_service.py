@@ -24,7 +24,7 @@ from typing import Any, Dict
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+LLM_MODEL = os.getenv("LLM_MODEL")
 TARGET_FOLDER_PATH = os.getenv("TARGET_FOLDER_PATH", "/home/coder/project/")
 SCRIPT = os.path.join(TARGET_FOLDER_PATH, "output.py")
 
@@ -61,11 +61,6 @@ def emit_event(event_type: str, data: Dict[str, Any]):
 
 
 async def run_pipeline_async(user_message: str):
-    # Fail fast if no API key provided; ADK/GenAI relies on env GOOGLE_API_KEY or GEMINI_API_KEY
-    if not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
-        return [
-            "ADK error: No Gemini API key configured. Set GEMINI_API_KEY or GOOGLE_API_KEY in the interface-api service environment and rebuild."
-        ]
 
     # Create async in-memory session
     session_service = InMemorySessionService()
@@ -84,7 +79,7 @@ async def run_pipeline_async(user_message: str):
     # ============================================================================
     code_writer_agent = LlmAgent(
         name="CodeWriterAgent",
-        model=GEMINI_MODEL,
+        model=LLM_MODEL,
         instruction=f"""You are a senior software engineer specializing in project scaffolding and code generation.
 
     **Your Task:**
@@ -195,7 +190,7 @@ async def run_pipeline_async(user_message: str):
     # ============================================================================
     code_reviewer_agent = LlmAgent(
         name="CodeReviewerAgent",
-        model=GEMINI_MODEL,
+        model=LLM_MODEL,
         instruction="""You are an expert code reviewer specializing in Python automation scripts.
 
     **Your Task:**
@@ -263,7 +258,7 @@ async def run_pipeline_async(user_message: str):
     # ============================================================================
     code_refactorer_agent = LlmAgent(
         name="CodeRefactorerAgent",
-        model=GEMINI_MODEL,
+        model=LLM_MODEL,
         instruction=f"""You are a Python refactoring expert.
 
     **Your Task:**
@@ -320,7 +315,7 @@ async def run_pipeline_async(user_message: str):
     # ============================================================================
     file_saver_agent = LlmAgent(
         name="FileSaverAgent",
-        model=GEMINI_MODEL,
+        model=LLM_MODEL,
         tools=[filesystem_toolset],
         instruction=f"""You are a file management specialist with access to filesystem tools.
 
@@ -356,7 +351,7 @@ async def run_pipeline_async(user_message: str):
     # ============================================================================
     # code_executor_agent = LlmAgent(
     #     name="CodeExecutorAgent",
-    #     model=GEMINI_MODEL,
+    #     model=LLM_MODEL,
     #     code_executor=BuiltInCodeExecutor(),
     #     tools=[filesystem_toolset],
     #     instruction=f"""You are a Python code execution specialist with access to code execution and filesystem tools.
@@ -555,10 +550,6 @@ async def run_pipeline_async(user_message: str):
         # Return a single-element outputs array with a readable error
         err_msg = str(e)
         emit_event("pipeline.error", {"error": err_msg})
-        if "PERMISSION_DENIED" in err_msg or "Your API key was reported as leaked" in err_msg:
-            return [
-                "ADK error: Google GenAI rejected the API key (permission denied or leaked). Rotate the key in Google AI Studio, update GEMINI_API_KEY/GOOGLE_API_KEY in Docker env, then rebuild."
-            ]
         return [f"ADK error: {err_msg}"]
 
     # Process outputs to extract only the analysis sections (not the Python code)

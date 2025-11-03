@@ -21,13 +21,14 @@ services:
     build:
       context: ./components/interface
       target: server-dev
-
-    # ✅ Expose ADK backend port for localhost access
     ports:
       - 3030:3030
+    env_file:
+      - ./components/interface/api/.env
 
     volumes:
       - ./sample-content-repo:/home/coder/project
+      - ./components/interface/api/sa.json:/var/secrets/sa.json:ro
       - type: volume
         source: support-vscode-extension
         target: /etc/cmd-executor/private-key
@@ -38,11 +39,9 @@ services:
         target: /etc/cmd-executor/socket
         volume:
           subpath: socket
-
     environment:
-      CONTENT_DEV_MODE: true
-      GEMINI_API_KEY: "AIzaSyABzuHLvfIflUbAx263lnAU1D3N50jyUM0" # ✅ Used by Google ADK
-      GEMINI_MODEL: "gemini-2.5-pro"
+      CONTENT_DEV_MODE: "true"
+      GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/sa.json
 
     depends_on:
       workspace:

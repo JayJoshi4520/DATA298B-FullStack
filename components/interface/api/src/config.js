@@ -25,8 +25,8 @@ export class Config {
         },
 
         gemini: {
-          enabled: !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
-          apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "",
+          enabled: !!(process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY),
+          apiKey: process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY || "",
           model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
           baseURL:
             process.env.GEMINI_BASE_URL ||
@@ -91,7 +91,7 @@ export class Config {
           if (process.env.ANTHROPIC_API_KEY) return "anthropic";
           break;
         case "gemini":
-          if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) return "gemini";
+          if (process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY) return "gemini";
           break;
         case "ollama":
           if (process.env.OLLAMA_ENABLED === "true") return "ollama";
@@ -173,7 +173,7 @@ export class Config {
       },
       gemini: {
         description: "Google Gemini models",
-        envVars: ["GEMINI_API_KEY", "GEMINI_MODEL"],
+        envVars: ["LLM_API_KEY", "GEMINI_MODEL"],
       },
       ollama: {
         description: "Local Ollama models",
