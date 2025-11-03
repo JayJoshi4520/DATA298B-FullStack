@@ -1,0 +1,66 @@
+// Import centralized variables
+@import "../../variables";
+
+#vscode-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: $gray-200;
+  padding: 40px;
+  background: transparent;
+  height: 100%;
+  flex: 1;
+  min-height: calc(100vh - 60px);
+
+  svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 20px;
+    opacity: 0.6;
+  }
+
+  .ide-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+
+    &:hover,
+    &:focus {
+      background: linear-gradient(135deg, #7b8ff0 0%, #8a5bb5 100%);
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    span {
+      position: relative;
+      top: 1px;
+    }
+  }
+
+  h3 {
+    color: $gray-200;
+    margin-bottom: 12px;
+    font-weight: 500;
+    border-bottom: none;
+    padding-bottom: 1em;
+  }
+
+  p {
+    color: $gray-400;
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+}

@@ -1,0 +1,100 @@
+// Import centralized variables
+@import "../../variables";
+
+.external-content-panel {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ecp-header {
+  background: $bg-glass;
+  border-bottom: 1px solid $border-color;
+  backdrop-filter: blur(8px);
+  box-shadow: $shadow-md;
+}
+
+#external-content-tabs {
+  .nav-link {
+    color: $text-light;
+    border: none !important;
+    position: relative;
+    transition: $transition-fast;
+
+    &:hover { color: #E6F7FF; }
+
+    &.active {
+      color: $todo-white;
+
+      &::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: -6px;
+        height: 2px;
+        background: linear-gradient(90deg, $neon-cyan, $neon-blue);
+        box-shadow: 0 0 12px rgba(18,176,255,0.45);
+        border-radius: 2px;
+      }
+    }
+  }
+
+  button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+
+    &:hover,
+    &:focus {
+      background: linear-gradient(135deg, #7b8ff0 0%, #8a5bb5 100%);
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    span {
+      position: relative;
+      top: 1px;
+    }
+  }
+}
+
+// Make IDE content area full height
+#external-content-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  .tab-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    .tab-pane {
+      height: 100%;
+      overflow: hidden;
+
+      &.active {
+        display: flex;
+        flex-direction: column;
+      }
+    }
+  }
+}
