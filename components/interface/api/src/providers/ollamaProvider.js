@@ -91,6 +91,5 @@ export class OllamaProvider extends BaseLLMProvider {
 
   validateConfig() {
     super.validateConfig();
-    // Ollama doesn't require API key
   }
 }

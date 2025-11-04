@@ -1,6 +1,6 @@
 import { OpenAIProvider } from "./providers/openaiProvider.js";
 import { AnthropicProvider } from "./providers/anthropicProvider.js";
-import { GeminiProvider } from "./providers/geminiProvider.js";
+import { VertexAIProvider } from "./providers/vertexAIProvider.js";
 import { OllamaProvider } from "./providers/ollamaProvider.js";
 import { GenericProvider } from "./providers/genericProvider.js";
 
@@ -12,7 +12,7 @@ export class LLMManager {
   }
 
   async initialize(config) {
-    console.log("🔧 Initializing LLM providers...");
+    console.log("=================== Initializing LLM providers... ===================");
 
     // Initialize configured providers
     for (const [name, providerConfig] of Object.entries(
@@ -23,10 +23,10 @@ export class LLMManager {
       try {
         const provider = this.createProvider(name, providerConfig);
         this.providers.set(name, provider);
-        console.log(`✅ ${name} provider initialized`);
+        console.log(`=================== ${name} provider initialized ===================`);
       } catch (error) {
         console.warn(
-          `⚠️  Failed to initialize ${name} provider: ${error.message}`,
+          `Failed to initialize ${name} provider: ${error.message}`,
         );
       }
     }
@@ -38,8 +38,8 @@ export class LLMManager {
     // Test connections
     await this.testProviders();
 
-    console.log(`🎯 Primary provider: ${this.currentProvider}`);
-    console.log(`🔄 Fallback providers: ${this.fallbackProviders.join(", ")}`);
+    console.log(`=================== Primary provider: ${this.currentProvider} ===================`);
+    console.log(`=================== Fallback providers: ${this.fallbackProviders.join(", ")} ===================`);
   }
 
   createProvider(name, config) {
@@ -48,8 +48,8 @@ export class LLMManager {
         return new OpenAIProvider(config);
       case "anthropic":
         return new AnthropicProvider(config);
-      case "gemini":
-        return new GeminiProvider(config);
+      case "vertexai":
+        return new VertexAIProvider(config);
       case "ollama":
         return new OllamaProvider(config);
       default:
@@ -59,14 +59,14 @@ export class LLMManager {
   }
 
   async testProviders() {
-    console.log("🧪 Testing provider connections...");
+    console.log("=================== Testing provider connections... ===================");
 
     for (const [name, provider] of this.providers) {
       const result = await provider.testConnection();
       if (result.success) {
-        console.log(`✅ ${name}: Connected`);
+        console.log(`=================== ${name}: Connected ===================`);
       } else {
-        console.warn(`❌ ${name}: ${result.error}`);
+        console.warn(`Failed to connect to ${name}: ${result.error}`);
       }
     }
   }
@@ -79,18 +79,18 @@ export class LLMManager {
     const providersToTry = [this.currentProvider, ...this.fallbackProviders];
     let lastError = null;
 
-    console.log("🔄 Trying providers:", providersToTry);
+    console.log("=================== Trying providers:", providersToTry);
 
     for (const providerName of providersToTry) {
       if (!this.providers.has(providerName)) {
-        console.log(`⚠️ Provider ${providerName} not available`);
+        console.log(`Provider ${providerName} not available`);
         continue;
       }
 
       const provider = this.providers.get(providerName);
 
       try {
-        console.log(`🤖 Using ${providerName} provider`);
+        console.log(`=================== Using ${providerName} provider ===================`);
         const response = await provider.generateResponse(
           messages,
           tools,
@@ -103,7 +103,7 @@ export class LLMManager {
           model: provider.model,
         };
       } catch (error) {
-        console.error(`❌ ${providerName} provider failed:`, error);
+        console.error(`=================== ${providerName} provider failed: ===================`, error);
         lastError = error;
       }
     }
@@ -113,7 +113,7 @@ export class LLMManager {
 
   generateMockResponse(userMessage, error) {
     return {
-      content: `🤖 **Mock Response** (All providers unavailable)\n\nYour message: "${userMessage}"\n\n❌ **Error**: ${error?.message || "No providers available"}\n\nTo fix this:\n1. Check your API keys\n2. Verify network connectivity\n3. Ensure services are running\n\n\`\`\`bash\n# Example: Check Ollama status\ncurl http://localhost:11434/api/tags\n\`\`\``,
+      content: `=================== **Mock Response** (All providers unavailable)\n\nYour message: "${userMessage}"\n\n ================== **Error**: ${error?.message || "No providers available"} ====================\n\nTo fix this:\n1. Check your API keys\n2. Verify network connectivity\n3. Ensure services are running\n\n\`\`\`bash\n# Example: Check Ollama status\ncurl http://localhost:11434/api/tags\n\`\`\``,
       toolCalls: [],
       usage: { total_tokens: 0 },
       provider: "mock",
@@ -136,7 +136,7 @@ export class LLMManager {
   switchProvider(providerName) {
     if (this.providers.has(providerName)) {
       this.currentProvider = providerName;
-      console.log(`🔄 Switched to ${providerName} provider`);
+      console.log(`=================== Switched to ${providerName} provider ===================`);
       return true;
     }
     return false;
@@ -146,7 +146,7 @@ export class LLMManager {
     try {
       const provider = this.createProvider(name, config);
       this.providers.set(name, provider);
-      console.log(`➕ Added ${name} provider`);
+      console.log(`=================== Added ${name} provider ===================`);
       return true;
     } catch (error) {
       console.error(`Failed to add ${name} provider: ${error.message}`);
@@ -156,12 +156,12 @@ export class LLMManager {
 
   removeProvider(name) {
     if (this.providers.delete(name)) {
-      console.log(`➖ Removed ${name} provider`);
+      console.log(`=================== Removed ${name} provider ===================`);
 
       // Switch to another provider if current was removed
       if (this.currentProvider === name) {
         this.currentProvider = this.getFirstAvailableProvider();
-        console.log(`🔄 Switched to ${this.currentProvider} provider`);
+        console.log(`=================== Switched to ${this.currentProvider} provider ===================`);
       }
       return true;
     }

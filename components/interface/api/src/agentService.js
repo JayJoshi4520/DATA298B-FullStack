@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { execFileSync, spawn } from "child_process";
+import { time } from "console";
 
 const PROJECT_DIR = "/home/coder/project/";
 
@@ -8,7 +9,7 @@ const PROJECT_DIR = "/home/coder/project/";
 export class AgentService {
   constructor() {
     this.initialized = false;
-    this.projectRoot = process.cwd(); // portable path for Docker & local
+    this.projectRoot = process.cwd(); 
   }
 
   async initialize() {
@@ -18,10 +19,8 @@ export class AgentService {
     }
   }
 
-  // ============================================
-  // 🔴 Streaming ADK via SSE (Python stderr JSONL)
-  // ============================================
   async runADKPipelineStream(res, task) {
+    const startTime = Date.now();
     const scriptPath = path.resolve(
       path.dirname(new URL(import.meta.url).pathname),
       "adk_service.py"
@@ -33,13 +32,16 @@ export class AgentService {
       env: { ...process.env, TARGET_FOLDER_PATH: TARGET_DIR },
       stdio: ["ignore", "pipe", "pipe"],
     });
+    const endTime = Date.now();
+    console.log(`ADK pipeline started at ${startTime}`);
+    console.log(`ADK pipeline ended at ${endTime}`);
+    console.log(`ADK pipeline took ${endTime - startTime} ms`);
 
     const writeEvent = (event, data) => {
       res.write(`event: ${event}\n`);
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
-    // Stream structured progress logs from stderr (JSON per line)
     let stderrBuf = "";
     child.stderr.on("data", (chunk) => {
       stderrBuf += chunk.toString();
@@ -52,19 +54,19 @@ export class AgentService {
           if (evt && evt.event) {
             // Forward all event types from Python ADK
             writeEvent(evt.event, evt);
-            console.log(`📡 ADK Event: ${evt.event}`, evt);
+            console.log(`=================== ADK Event: ${evt.event} ===================`, evt);
           }
         } catch {
           // Non-JSON diagnostic lines. Forward as log.
           if (line.trim()) {
             writeEvent("log", { message: line.trim() });
-            console.log(`📝 ADK Log: ${line.trim()}`);
+            console.log(`=================== ADK Log: ${line.trim()} ===================`);
           }
         }
       }
     });
 
-    // Collect stdout for final JSON result
+
     let out = "";
     child.stdout.on("data", (d) => (out += d.toString()));
 
@@ -85,9 +87,10 @@ export class AgentService {
   }
 
   // ============================================
-  // 🧩 Real Google ADK (Python Bridge Only)
+  // Real Google ADK (Python Bridge Only)
   // ============================================
   async runADKPipeline(task) {
+    const startTime = Date.now();
     const scriptPath = path.resolve(
       path.dirname(new URL(import.meta.url).pathname),
       "adk_service.py"
@@ -101,6 +104,11 @@ export class AgentService {
         timeout: 180000,
         env: { ...process.env, TARGET_FOLDER_PATH: TARGET_DIR },
       });
+
+    const endTime = Date.now();
+    console.log(`ADK pipeline started at ${startTime}`);
+    console.log(`ADK pipeline ended at ${endTime}`);
+    console.log(`ADK pipeline took ${endTime - startTime} ms`);
 
       const result = JSON.parse(output);
 
@@ -137,7 +145,7 @@ export class AgentService {
 
       return { mode: "ADK", projectPath: projectDir, outputs: result };
     } catch (err) {
-      console.error("❌ ADK execution failed:", err.message);
+      console.error("ADK execution failed:", err.message);
       throw new Error("ADK execution failed: " + err.message);
     }
   }

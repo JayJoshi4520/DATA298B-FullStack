@@ -1,12 +1,12 @@
 import { BaseLLMProvider } from "./baseLLMProvider.js";
 
-export class GeminiProvider extends BaseLLMProvider {
+export class VertexAIProvider extends BaseLLMProvider {
   constructor(config) {
     super({
-      name: "gemini",
+      name: "vertexai",
       apiKey: config.apiKey,
-      baseURL: config.baseURL || "https://generativelanguage.googleapis.com",
-      model: config.model || "gemini-2.5-pro", // Updated to latest model
+      baseURL: config.baseURL,
+      model: config.model, 
       maxTokens: config.maxTokens || 3000,
       ...config,
     });
@@ -15,13 +15,13 @@ export class GeminiProvider extends BaseLLMProvider {
   }
 
   async generateResponse(messages, tools = null, options = {}) {
-    console.log("🤖 Generating response with Gemini...");
+    console.log("=================== Generating response with vertexai ====================");
     console.log(`\n\nTHIS ARE THE TOOLS: ${tools[0].function.name}\n\n`);
     try {
-      // Fix: Use correct Gemini API endpoint format
+      // Fix: Use correct vertexai API endpoint format
       const endpoint = `${this.baseURL}/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
 
-      // Convert chat messages to Gemini format
+      // Convert chat messages to vertexai format
       const contents = this.formatMessages(messages);
 
       const payload = {
@@ -34,7 +34,7 @@ export class GeminiProvider extends BaseLLMProvider {
 
       // Add tools configuration if provided
       if (tools && tools.length > 0) {
-        console.log(`🔧 Including ${tools.length} tools in request`);
+        console.log(`=================== Including ${tools.length} tools in request ====================`);
 
         payload.tools = [
           {
@@ -54,9 +54,9 @@ export class GeminiProvider extends BaseLLMProvider {
         };
       }
 
-      console.log("📡 Calling Gemini API...");
-      console.log("🔗 Endpoint:", endpoint);
-      console.log("📦 Payload:", JSON.stringify(payload, null, 2));
+      console.log("=================== Calling vertexai API ====================\n");
+      console.log("=================== Endpoint: ====================\n", endpoint);
+      console.log("=================== Payload: ====================\n", JSON.stringify(payload, null, 2));
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -68,8 +68,8 @@ export class GeminiProvider extends BaseLLMProvider {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error("❌ Gemini API error:", error);
-        throw new Error(`Gemini API error: ${response.status} - ${error}`);
+        console.error("=================== vertexai API error ====================\n", error);
+        throw new Error(`vertexai API error: ${response.status} - ${error}`);
       }
 
       const data = await response.json();
@@ -80,8 +80,8 @@ export class GeminiProvider extends BaseLLMProvider {
         !data.candidates[0] ||
         !data.candidates[0].content
       ) {
-        console.error("❌ Invalid Gemini response:", data);
-        throw new Error("Invalid response from Gemini API");
+        console.error("=================== Invalid vertexai response ====================\n", data);
+        throw new Error("Invalid response from vertexai API");
       }
 
       // Parse the response to extract content and tool calls
@@ -90,12 +90,12 @@ export class GeminiProvider extends BaseLLMProvider {
       return {
         content: parsedResponse.content,
         toolCalls: parsedResponse.toolCalls,
-        provider: "gemini",
+        provider: "vertexai",
         model: this.model,
         usage: parsedResponse.usage,
       };
     } catch (error) {
-      console.error("❌ Gemini provider error:", error);
+      console.error("=================== vertexai provider error ====================\n", error);
       throw error;
     }
   }
@@ -144,7 +144,7 @@ export class GeminiProvider extends BaseLLMProvider {
   parseResponse(data) {
     const candidate = data.candidates?.[0];
     if (!candidate) {
-      throw new Error("No response from Gemini");
+      throw new Error("No response from vertexai");
     }
 
     const content = candidate.content?.parts?.[0]?.text || "";
@@ -174,8 +174,8 @@ export class GeminiProvider extends BaseLLMProvider {
   validateConfig() {
     super.validateConfig();
     if (!this.apiKey) {
-      throw new Error("Google Gemini API key is required");
+      throw new Error("Google vertexai API key is required");
     }
-    console.log("🔧 Initializing Gemini provider with model:", this.model);
+    console.log("=================== Initializing vertexai provider with model: ====================\n", this.model);
   }
 }

@@ -12,7 +12,7 @@ export class AIService {
     if (!this.initialized) {
       await this.llmManager.initialize(this.config);
       this.initialized = true;
-      console.log("🔧 AIService initialized with config:", {
+      console.log("=================== AIService initialized with config: ====================", {
         primary: this.config.primary,
         providers: Object.keys(this.config.providers),
       });
@@ -27,7 +27,7 @@ export class AIService {
     try {
       return await this.llmManager.generateResponse(messages, tools, options);
     } catch (error) {
-      console.error("AI Service error:", error);
+      console.error("=================== AIService error: ====================", error);
       throw error;
     }
   }

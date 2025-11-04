@@ -349,7 +349,7 @@ export class ToolManager {
           }
         }
       } catch (error) {
-        // Skip directories we can't read
+        console.error(`Failed to read directory ${currentPath}: ${error.message}`);
       }
 
       return items;
@@ -413,8 +413,8 @@ export class ToolManager {
       const output = execSync(command, {
         cwd: fullWorkingDir,
         encoding: "utf8",
-        timeout: 30000, // 30 second timeout
-        maxBuffer: 1024 * 1024, // 1MB buffer
+        timeout: 30000, 
+        maxBuffer: 1024 * 1024, 
       });
 
       return {

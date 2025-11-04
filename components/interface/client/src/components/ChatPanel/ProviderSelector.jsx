@@ -48,7 +48,7 @@ export function ProviderSelector() {
     const colors = {
       openai: "success",
       anthropic: "primary",
-      gemini: "warning",
+      vertexai: "warning",
       ollama: "info",
       custom1: "secondary",
       custom2: "secondary",

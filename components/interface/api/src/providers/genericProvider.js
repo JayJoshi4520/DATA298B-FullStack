@@ -10,7 +10,7 @@ export class GenericProvider extends BaseLLMProvider {
       maxTokens: config.maxTokens || 3000,
       ...config,
     });
-    this.supportsTools = config.supportsTools !== false; // Default to true
+    this.supportsTools = config.supportsTools !== false; 
     this.authHeader = config.authHeader || "Authorization";
     this.authPrefix = config.authPrefix || "Bearer";
     this.validateConfig();

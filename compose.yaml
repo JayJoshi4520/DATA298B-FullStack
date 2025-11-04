@@ -28,7 +28,6 @@ services:
 
     volumes:
       - ./sample-content-repo:/home/coder/project
-      - ./components/interface/api/sa.json:/var/secrets/sa.json:ro
       - type: volume
         source: support-vscode-extension
         target: /etc/cmd-executor/private-key
@@ -41,7 +40,6 @@ services:
           subpath: socket
     environment:
       CONTENT_DEV_MODE: "true"
-      GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/sa.json
 
     depends_on:
       workspace:
@@ -73,8 +71,7 @@ services:
         - path: ./components/interface/client/package-lock.json
           action: rebuild
 
-  # This service is not running anything, but simply building the extension
-  # and allowing it to be an additional build context for the workspace service
+
   vscode-extension:
     build: ./components/support-vscode-extension
 

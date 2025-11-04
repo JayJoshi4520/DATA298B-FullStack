@@ -25,7 +25,7 @@ export function MessageComponent({ message }) {
     const colors = {
       openai: "success",
       anthropic: "primary",
-      gemini: "warning",
+      vertexai: "warning",
       ollama: "info",
       mock: "secondary",
     };

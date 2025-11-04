@@ -56,10 +56,6 @@ export function ChatHeader() {
         <div className="d-flex align-items-center gap-3">
           <ProviderSelector />
 
-          {/* <small className="text-muted">
-            Tools: {availableTools?.length || 0}
-          </small> */}
-
           <div className="mode-indicator">
             <small style={{ color: currentMode.color }}>
               <span className="me-1">{currentMode.icon}</span>

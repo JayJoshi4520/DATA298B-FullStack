@@ -56,7 +56,6 @@ export const WorkshopContextProvider = ({ children }) => {
       })
       .catch((error) => {
         console.error("Error fetching section data:", error);
-        // Fallback to default section if fetch fails
         setActiveSection({});
         toast.error(
           "Failed to load section details. Validate the Labspace is running and try again.",

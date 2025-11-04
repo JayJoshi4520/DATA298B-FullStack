@@ -39,7 +39,6 @@ app.get("/api/health", async (req, res) => {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static("public"));
 
-// Provider management endpoints
 app.get("/api/providers", (req, res) => {
   try {
     const providerInfo = chatService.getProviderInfo();
@@ -78,7 +77,7 @@ app.post("/api/chat", async (req, res) => {
 
     switch (mode) {
       case "agent":
-        console.log(`🤖 Agent request: ${message.substring(0, 50)}...`);
+        console.log(`=================== Agent request: ${message.substring(0, 50)}... ===================`);
         response = await agentService.processAgentRequest(
           message,
           history || [],
@@ -88,13 +87,13 @@ app.post("/api/chat", async (req, res) => {
         break;
 
       case "ask":
-        console.log(`❓ Ask request: ${message.substring(0, 50)}...`);
+        console.log(`=================== Ask request: ${message.substring(0, 50)}... ===================`);
         response = await agentService.runADKPipeline(message);
         break;
 
       case "chat":
       default:
-        console.log(`💬 Chat request: ${message.substring(0, 50)}...`);
+        console.log(`=================== Chat request: ${message.substring(0, 50)}... ===================`);
         response = await chatService.processChatRequest(
           message,
           history || [],
@@ -105,7 +104,7 @@ app.post("/api/chat", async (req, res) => {
 
     const processingTime = Date.now() - startTime;
     console.log(
-      `✅ Response generated in ${processingTime}ms using ${response.provider || "unknown"}`,
+      `=================== Response generated in ${processingTime}ms using ${response.provider || "unknown"} ===================`,
     );
 
     res.json({
@@ -114,7 +113,7 @@ app.post("/api/chat", async (req, res) => {
       processingTime: processingTime,
     });
   } catch (error) {
-    console.error("Chat API error:", error);
+    console.error("=================== Chat API error: ===================", error);
     res.status(500).json({
       error: "Failed to process chat request",
       message:
@@ -130,7 +129,7 @@ app.post("/api/chat", async (req, res) => {
 
 
 // -----------------------------
-// 🚀 ADK pipeline endpoint (non-streaming)
+//  ADK pipeline endpoint (non-streaming)
 // -----------------------------
 app.post("/api/adk/run", async (req, res) => {
   try {
@@ -141,13 +140,13 @@ app.post("/api/adk/run", async (req, res) => {
     const result = await agentService.runADKPipeline(message);
     res.json(result);
   } catch (error) {
-    console.error("❌ ADK run failed:", error);
+    console.error("=================== ADK run failed: ===================", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // -----------------------------
-// 🔴 ADK streaming endpoint (SSE)
+// ADK streaming endpoint (SSE)
 // -----------------------------
 app.get("/api/adk/stream", async (req, res) => {
   try {
@@ -173,7 +172,7 @@ app.get("/api/adk/stream", async (req, res) => {
       try { cleanup?.(); } catch {}
     });
   } catch (error) {
-    console.error("❌ ADK stream failed:", error);
+    console.error("=================== ADK stream failed: ===================", error);
     try {
       res.write(`event: error\n`);
       res.write(`data: ${JSON.stringify({ message: error.message })}\n\n`);
@@ -184,7 +183,7 @@ app.get("/api/adk/stream", async (req, res) => {
 });
 
 // -----------------------------
-// 🧠 Optional: Labspace info (still supported)
+// Optional: Labspace info (still supported)
 // -----------------------------
 app.get("/api/labspace", (req, res) => {
   try {
@@ -195,27 +194,27 @@ app.get("/api/labspace", (req, res) => {
 });
 
 // -----------------------------
-// 🏁 Startup
+//  Startup
 // -----------------------------
 const PORT = process.env.PORT || 3030;
 
 (async function startServer() {
   try {
-    console.log("🔧 Initializing ADK-only server...");
+    console.log("=================== Initializing ADK-only server... ===================");
 
     await Promise.allSettled([
       agentService.initialize(),
       workshopStore.bootstrap(),
     ]);
 
-    console.log("🤖 ADK Mode Enabled → /api/adk/run");
+    console.log("=================== ADK Mode Enabled → /api/adk/run ===================");
 
     app.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 API running on port ${PORT}:${PORT}`);
+      console.log(`=================== API running on port ${PORT}:${PORT} ===================`);
       console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {
-    console.error("❌ Failed to start server:", error);
+    console.error("=================== Failed to start server: ===================", error);
     process.exit(1);
   }
 })();

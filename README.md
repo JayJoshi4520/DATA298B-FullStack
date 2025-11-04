@@ -9,43 +9,19 @@
 # ======================
 # LLM PROVIDER CONFIGURATION
 # ======================
-
-# Primary provider (auto-detected if not set)
-# Options: openai, anthropic, gemini, ollama, custom1, custom2
-LLM_PRIMARY_PROVIDER=gemini
-
-# Fallback providers (comma-separated)
-# LLM_FALLBACK_PROVIDERS=anthropic,openai
+LLM_PRIMARY_PROVIDER=vertexai
 
 # ======================
-# OPENAI CONFIGURATION
-# ======================
-# OPENAI_API_KEY=sk-your_openai_api_key_here
-# OPENAI_MODEL=gpt-4
-# OPENAI_BASE_URL=https://api.openai.com/v1
-# OPENAI_MAX_TOKENS=4000
-
-# ======================
-# ANTHROPIC CONFIGURATION
-# ======================
-# ANTHROPIC_API_KEY=sk-ant-your_anthropic_key_here
-# ANTHROPIC_MODEL=claude-3-sonnet-20240229
-# ANTHROPIC_BASE_URL=https://api.anthropic.com
-# ANTHROPIC_MAX_TOKENS=4000
-
-# ======================
-# GOOGLE GEMINI CONFIGURATION
+# GOOGLE VERTEXAI CONFIGURATION
 # ======================
 GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/sa.json
 GOOGLE_GENAI_USE_VERTEXAI=true
-# LLM_MODEL=projects/excellent-hue-472000-n4/locations/us-east-4/endpoints/3088198308934451200
+LLM_MODEL=projects/excellent-hue-472000-n4/locations/us-east-4/endpoints/3088198308934451200
 GOOGLE_CLOUD_PROJECT=excellent-hue-472000-n4
 GOOGLE_CLOUD_LOCATION=us-east4
-
 LLM_API_KEY=YOUR_API_KEY
-LLM_MODEL=YOU_LLM_MODEL
-GEMINI_BASE_URL=https://generativelanguage.googleapis.com
-GEMINI_MAX_TOKENS=4000
+LLM_BASE_URL=https://generativelanguage.googleapis.com
+LLM_MAX_TOKENS=4000
 
 # ======================
 # OLLAMA CONFIGURATION (Local/Open Source)
@@ -110,7 +86,7 @@ Click the **Load VS Code here** button to display the VS Code IDE in the right s
 To work on the Labspace infrastructure, you can utilize the `compose.yaml` file. Make sure to enable Compose Watch mode with the `--watch` flag.
 
 ```console
-docker compose up --watch --build
+docker compose up --build
 ```
 
 After it starts, open the workspace at http://localhost:5173.

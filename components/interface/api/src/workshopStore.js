@@ -15,7 +15,7 @@ export class WorkshopStore {
         "/etc/cmd-executor/private-key/cmd-executor.key",
       );
     } catch (error) {
-      console.log("⚠️ Signing key not found, some workshop features disabled");
+      console.log("=================== Signing key not found, some workshop features disabled ===================");
       // Create a dummy key for development
       this.signingKey = "dummy-key-for-development";
     }
@@ -37,7 +37,7 @@ export class WorkshopStore {
       }));
     } catch (error) {
       // Fallback for chat mode - create default config
-      console.log("No labspace.yaml found, using default config for chat mode");
+      console.log("=================== No labspace.yaml found, using default config for chat mode ===================");
       this.config = {
         title: "AI Development Assistant",
         description: "Interactive development environment with AI chat",
@@ -79,7 +79,7 @@ export class WorkshopStore {
     );
 
     if (!section) {
-      console.warn(`Section with id ${sectionId} not found`);
+      console.warn(`=================== Section with id ${sectionId} not found ===================`);
       return null;
     }
 
@@ -107,7 +107,7 @@ export class WorkshopStore {
       const { code, meta } = this.#getCodeBlock(content, codeBlockIndex);
 
       if (this.signingKey === "dummy-key-for-development") {
-        console.log("⚠️ Mock command execution (no signing key):", code);
+        console.log("Mock command execution (no signing key): ", code);
         return Promise.resolve();
       }
 
@@ -141,7 +141,7 @@ export class WorkshopStore {
           throw new Error(`Failed to execute command: ${res.statusText}`);
       });
     } catch (error) {
-      console.error("Command execution error:", error);
+      console.error("Command execution error: ", error);
       return Promise.reject(error);
     }
   }
@@ -168,7 +168,7 @@ export class WorkshopStore {
   async openFileInIDE(filePath, line) {
     try {
       if (this.signingKey === "dummy-key-for-development") {
-        console.log("⚠️ Mock file opening (no signing key):", filePath, line);
+        console.log("Mock file opening (no signing key):", filePath, line);
         return Promise.resolve();
       }
 
@@ -201,7 +201,7 @@ export class WorkshopStore {
 
       const codeRows = codeBlocks[index].split("\n");
       const headerRow = codeRows.shift().substring(3);
-      codeRows.pop(); // remove the closing ```
+      codeRows.pop();
 
       const [language, ...metaInfo] = headerRow.split(" ");
 
@@ -211,8 +211,6 @@ export class WorkshopStore {
         return acc;
       }, {});
 
-      // Get the indentation to trim off extra text that might occur
-      // when a code block is nested inside a list item
       const indentation = codeRows[0] ? codeRows[0].match(/^\s*/)[0].length : 0;
 
       return {

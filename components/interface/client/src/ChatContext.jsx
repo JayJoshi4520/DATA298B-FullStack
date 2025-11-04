@@ -8,9 +8,9 @@ export const ChatContextProvider = ({ children }) => {
   const [mode, setMode] = useState("ask");
   const [availableTools, setAvailableTools] = useState([]);
   const [progressEvents, setProgressEvents] = useState([]);
-  const [insights, setInsights] = useState([]); // [{stage,label,text}]
-  const [agentActivity, setAgentActivity] = useState([]); // [{agent, action, tool, timestamp}]
-  const [activeAgent, setActiveAgent] = useState(null); // Current active agent
+  const [insights, setInsights] = useState([]); 
+  const [agentActivity, setAgentActivity] = useState([]); 
+  const [activeAgent, setActiveAgent] = useState(null); 
   const sseRef = useRef(null);
 
   const stopStream = useCallback(() => {

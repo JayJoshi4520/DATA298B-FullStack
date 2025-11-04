@@ -34,7 +34,6 @@ os.makedirs(TARGET_FOLDER_PATH, exist_ok=True)
 # ============================================================================
 # MCP TOOLSETS
 # ============================================================================
-# Filesystem operations
 filesystem_toolset = McpToolset(
     connection_params=StdioConnectionParams(
         server_params=StdioServerParameters(
@@ -48,7 +47,6 @@ filesystem_toolset = McpToolset(
     )
 )
 
-MODEL = "gemini-2.0-flash"
 
 # ============================================================================
 # EVENT EMITTER FOR STREAMING
@@ -64,10 +62,8 @@ async def run_pipeline_async(user_message: str):
 
     # Create async in-memory session
     session_service = InMemorySessionService()
-    # Debug to stderr to avoid corrupting JSON stdout
     print(f"Current PATH is: {TARGET_FOLDER_PATH}", file=sys.stderr, flush=True)
 
-    # ✅ Await session creation (fixes coroutine warning + missing session)
     await session_service.create_session(
         app_name="node_adk_bridge",
         user_id="node_user",
@@ -346,83 +342,7 @@ async def run_pipeline_async(user_message: str):
         output_key="save_status"
     )
 
-    # ============================================================================
-    # AGENT 5: PYTHON CODE EXECUTOR (Uses BuiltInCodeExecutor + filesystem)
-    # ============================================================================
-    # code_executor_agent = LlmAgent(
-    #     name="CodeExecutorAgent",
-    #     model=LLM_MODEL,
-    #     code_executor=BuiltInCodeExecutor(),
-    #     tools=[filesystem_toolset],
-    #     instruction=f"""You are a Python code execution specialist with access to code execution and filesystem tools.
 
-    # **Your Task:**
-    # Execute the saved Python script (output.py) to actually create the project structure.
-
-    # **File Location:** {TARGET_FOLDER_PATH}output.py
-
-    # **Step-by-Step Process:**
-
-    # 1. **Read the Script:**
-    #    - Use the filesystem tool to read the content of `output.py`
-    #    - Verify the file exists and contains valid Python code
-    #    - Display the first few lines to confirm it loaded correctly
-
-    # 2. **Execute the Code:**
-    #    - Use the code executor to run the Python script
-    #    - The script will create the actual project files and folders
-    #    - Capture all print output and error messages
-
-    # 3. **Verify Results:**
-    #    - After execution, use filesystem tools to check if files were created
-    #    - List the contents of the target directory
-    #    - Confirm the project structure matches expectations
-
-    # 4. **Report Results:**
-    #    Provide a structured report:
-    #    ```
-    #    ═══════════════════════════════════════════════════════════
-    #    📋 EXECUTION REPORT
-    #    ═══════════════════════════════════════════════════════════
-    
-    #    📂 Script Location: {TARGET_FOLDER_PATH}output.py
-    
-    #    ▶️  EXECUTION OUTPUT:
-    #    ───────────────────────────────────────────────────────────
-    #    [All output from the script execution]
-    #    ───────────────────────────────────────────────────────────
-    
-    #    📊 EXECUTION STATUS: [✅ SUCCESS / ❌ ERROR / ⚠️ PARTIAL]
-    
-    #    📁 Project Location: {TARGET_FOLDER_PATH}[project-name]/
-    
-    #    📝 Files/Folders Created:
-    #    - [List all created items]
-    
-    #    [If errors: show error details and suggestions]
-    #    ═══════════════════════════════════════════════════════════
-    #    ```
-
-    # **Error Handling:**
-    # If execution fails, analyze and report:
-    # - **Syntax Error:** Code has Python syntax issues
-    # - **Permission Error:** Cannot write to target directory
-    # - **Import Error:** Missing required Python packages
-    # - **Path Error:** Invalid or inaccessible paths
-    # - **Runtime Error:** Error during execution
-
-    # For each error type, provide specific remediation steps.
-
-    # **CRITICAL REQUIREMENTS:**
-    # - You MUST actually execute the code, not just describe what would happen
-    # - Use code_executor to run the Python script
-    # - Capture and display ALL output (stdout and stderr)
-    # - Verify the project was created by checking the filesystem
-    # - Provide actionable feedback if anything fails
-    # """,
-    #     description="Executes the generated output.py script using BuiltInCodeExecutor",
-    #     output_key="execution_result"
-    # )
 
     # ============================================================================
     # COMPOSITE AGENTS
@@ -436,14 +356,7 @@ async def run_pipeline_async(user_message: str):
         description="Iteratively reviews and refactors code until approved or max iterations"
     )
 
-    # Pipeline WITHOUT execution: Write -> Improve -> Save
-    # code_pipeline_agent = SequentialAgent(
-    #     name="CodePipelineAgent",
-    #     sub_agents=[code_writer_agent, file_saver_agent],
-    #     description="Pipeline: generates code and saves to output.py"
-    # )
 
-    # FULL pipeline WITH execution: Write -> Improve -> Save -> Execute
         
     code_pipeline_agent = SequentialAgent(
         name="FullPipelineAgent",
@@ -458,15 +371,6 @@ async def run_pipeline_async(user_message: str):
     # ============================================================================
     # ROOT AGENT
     # ============================================================================
-    # Choose one:
-
-    # Option 1: Just generate and save (no execution)
-    # root_agent = code_pipeline_agent
-
-    # Option 2 (disabled for speed): Generate, save, AND execute
-    # root_agent = full_pipeline_agent
-
-    # Use the faster pipeline to avoid timeouts
     root_agent = code_pipeline_agent
 
     runner = Runner(

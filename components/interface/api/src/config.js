@@ -24,14 +24,14 @@ export class Config {
           maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS) || 3000,
         },
 
-        gemini: {
+        vertexai: {
           enabled: !!(process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY),
           apiKey: process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY || "",
-          model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+          model: process.env.LLM_MODEL,
           baseURL:
-            process.env.GEMINI_BASE_URL ||
+            process.env.LLM_BASE_URL ||
             "https://generativelanguage.googleapis.com",
-          maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS) || 3000,
+          maxTokens: parseInt(process.env.LLM_MAX_TOKENS) || 3000,
         },
 
         ollama: {
@@ -75,7 +75,7 @@ export class Config {
     const priority = [
       "openai",
       "anthropic",
-      "gemini", // Gemini will be enabled by default
+      "vertexai", 
       "ollama",
       "custom1",
       "custom2",
@@ -90,8 +90,8 @@ export class Config {
         case "anthropic":
           if (process.env.ANTHROPIC_API_KEY) return "anthropic";
           break;
-        case "gemini":
-          if (process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY) return "gemini";
+        case "vertexai":
+          if (process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY) return "vertexai";
           break;
         case "ollama":
           if (process.env.OLLAMA_ENABLED === "true") return "ollama";
@@ -104,7 +104,7 @@ export class Config {
           break;
       }
     }
-    return "gemini";
+    return "vertexai";
   }
 
   static getServerConfig() {
@@ -171,9 +171,9 @@ export class Config {
         description: "Anthropic Claude models",
         envVars: ["ANTHROPIC_API_KEY", "ANTHROPIC_MODEL"],
       },
-      gemini: {
-        description: "Google Gemini models",
-        envVars: ["LLM_API_KEY", "GEMINI_MODEL"],
+      vertexai: {
+        description: "Google vertexai models",
+        envVars: ["LLM_API_KEY", "LLM_MODEL"],
       },
       ollama: {
         description: "Local Ollama models",
