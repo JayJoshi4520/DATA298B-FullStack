@@ -28,6 +28,9 @@ services:
 
     volumes:
       - ./sample-content-repo:/home/coder/project
+      - ./components/interface/api/sa.json:/var/secrets/sa.json:ro
+      - ./components/interface/api/generated:/usr/local/app/generated
+      - ./components/interface/api/data:/usr/local/app/data
       - type: volume
         source: support-vscode-extension
         target: /etc/cmd-executor/private-key
@@ -40,6 +43,7 @@ services:
           subpath: socket
     environment:
       CONTENT_DEV_MODE: "true"
+      GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/sa.json
 
     depends_on:
       workspace:

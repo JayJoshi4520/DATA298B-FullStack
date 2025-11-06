@@ -16,7 +16,10 @@ export class VertexAIProvider extends BaseLLMProvider {
 
   async generateResponse(messages, tools = null, options = {}) {
     console.log("=================== Generating response with vertexai ====================");
-    console.log(`\n\nTHIS ARE THE TOOLS: ${tools[0].function.name}\n\n`);
+    const toolCount = Array.isArray(tools) ? tools.length : 0;
+    if (toolCount > 0) {
+      console.log(`Including ${toolCount} tool(s)`);
+    }
     try {
       // Fix: Use correct vertexai API endpoint format
       const endpoint = `${this.baseURL}/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;

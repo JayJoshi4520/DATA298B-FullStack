@@ -27,15 +27,26 @@ RUN npm run build
 # -----------------------------------------------
 FROM base AS server-dev
 
-# Copy package files and install dependencies
+# Copy package files
 COPY api/package* ./ 
 ENV NODE_ENV=development
+
+# Install system build deps required by node-gyp and better-sqlite3
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip build-essential make g++ pkg-config git libsqlite3-dev && \
+    ln -sf /usr/bin/python3 /usr/bin/python
+
+# Make Python discoverable for node-gyp on npm 11+
+ENV PYTHON=/usr/bin/python3
+ENV npm_config_python=/usr/bin/python3
+# Optional: ensure native compile when no prebuilds are available (Node 24/arm64)
+ENV npm_config_build_from_source=true
+
+# Install Node dependencies after system deps are present
 RUN npm install
 
-# Install Python + ADK dependencies
-RUN apt-get update && apt-get install -y python3 python3-pip && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    pip install --no-cache-dir --break-system-packages google-adk google-generativeai google-genai mcp
+# Install Python ADK dependencies
+RUN pip install --no-cache-dir --break-system-packages google-adk google-generativeai google-genai mcp
 
 # Copy API source code
 COPY api/src ./src
@@ -48,15 +59,26 @@ CMD ["npm", "run", "dev"]
 # -----------------------------------------------
 FROM base AS server-build
 
-# Copy and install Node dependencies
+# Copy package files
 COPY api/package* ./ 
 ENV NODE_ENV=production
-RUN npm ci 
 
-# Install Python + ADK for production
-RUN apt-get update && apt-get install -y python3 python3-pip && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    pip install --no-cache-dir --break-system-packages google-adk google-generativeai google-genai mcp
+# Install system build deps required by node-gyp and better-sqlite3
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip build-essential make g++ pkg-config git libsqlite3-dev && \
+    ln -sf /usr/bin/python3 /usr/bin/python
+
+# Make Python discoverable for node-gyp on npm 11+
+ENV PYTHON=/usr/bin/python3
+ENV npm_config_python=/usr/bin/python3
+# Optional: ensure native compile when no prebuilds are available (Node 24/arm64)
+ENV npm_config_build_from_source=true
+
+# Install Node dependencies after system deps are present
+RUN npm ci
+
+# Install Python ADK for production
+RUN pip install --no-cache-dir --break-system-packages google-adk google-generativeai google-genai mcp
 
 # Copy API source code and built frontend
 COPY api/src ./src

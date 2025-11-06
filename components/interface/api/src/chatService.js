@@ -1,8 +1,10 @@
 import { AIService } from "./aiService.js";
+import { MemoryService } from "./memory/memoryService.js";
 
 export class ChatService {
   constructor() {
     this.aiService = new AIService();
+    this.memory = new MemoryService();
   }
 
   async initialize() {
@@ -10,12 +12,33 @@ export class ChatService {
   }
 
   async processChatRequest(message, history, options = {}) {
-    const messages = this.buildChatHistory(history, message);
+    const { userId, sessionId, projectId } = options || {};
+
+    // Pull local context
+    const ctx = await this.memory.getChatContext({
+      userId,
+      sessionId,
+      projectId,
+      query: message,
+      limit: 10,
+    });
+
+    const messages = this.buildChatHistory(history, message, ctx);
 
     try {
       const response = await this.aiService.generateResponse(messages, null, {
         temperature: options.temperature || 0.7,
         maxTokens: options.maxTokens || 2000,
+      });
+
+      // Persist turn locally (fully local store)
+      await this.memory.saveTurn({
+        userId,
+        sessionId,
+        projectId,
+        userMsg: message,
+        assistantMsg: response.content,
+        usage: response.usage,
       });
 
       return {
@@ -38,7 +61,7 @@ export class ChatService {
     }
   }
 
-  buildChatHistory(history, currentMessage) {
+  buildChatHistory(history, currentMessage, ctx = {}) {
     const systemPrompt = {
       role: "system",
       content: `You are a helpful AI development assistant in CHAT mode. Key characteristics:
@@ -68,21 +91,24 @@ Always be helpful, provide detailed explanations, and include relevant code exam
 
     const chatMessages = [systemPrompt];
 
-    // Add recent history (keep last 10 messages for context)
-    history.slice(-10).forEach((msg) => {
+    // Inject lightweight session summary and recent project memories if present
+    if (ctx?.summary) {
+      chatMessages.push({ role: "system", content: `Session summary (context):\n${ctx.summary}` });
+    }
+    if (ctx?.recentMemories?.length) {
+      const bullets = ctx.recentMemories.map((m) => `- ${m.text}`).join("\n");
+      chatMessages.push({ role: "system", content: `Relevant project notes:\n${bullets}` });
+    }
+
+    // Add recent history provided by client (keep last 10 for context)
+    (history || []).slice(-10).forEach((msg) => {
       if (msg.role === "user" || msg.role === "assistant") {
-        chatMessages.push({
-          role: msg.role,
-          content: msg.content,
-        });
+        chatMessages.push({ role: msg.role, content: msg.content });
       }
     });
 
     // Add current message
-    chatMessages.push({
-      role: "user",
-      content: currentMessage,
-    });
+    chatMessages.push({ role: "user", content: currentMessage });
 
     return chatMessages;
   }

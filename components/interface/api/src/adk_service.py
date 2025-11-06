@@ -1,4 +1,4 @@
-# ============================================
+
 # adk_service.py — Fixed Async Session Creation (Generic ADK Pipeline)
 # ============================================
 
@@ -70,16 +70,44 @@ async def run_pipeline_async(user_message: str):
         session_id="adk_session",
     )
 
+    # Pull optional memory context passed from Node (JSON in ADK_CONTEXT)
+    ctx_raw = os.getenv("ADK_CONTEXT", "")
+    ctx_summary = ""
+    try:
+        if ctx_raw:
+            ctx = json.loads(ctx_raw)
+            c = ctx.get("context", {})
+            summary = (c.get("summary") or "").strip()
+            recent_msgs = c.get("recentMessages") or []
+            notes = c.get("recentMemories") or []
+            lines = []
+            if summary:
+                lines.append("Session summary:\n" + summary)
+            if recent_msgs:
+                # include last up to 6 messages compactly
+                last_msgs = recent_msgs[-6:]
+                msg_lines = [f"- {m.get('role')}: {m.get('content')[:200]}" for m in last_msgs if m.get('content')]
+                if msg_lines:
+                    lines.append("Recent messages:\n" + "\n".join(msg_lines))
+            if notes:
+                note_lines = [f"- {n.get('text', '')[:200]}" for n in notes]
+                if note_lines:
+                    lines.append("Relevant project notes:\n" + "\n".join(note_lines))
+            if lines:
+                ctx_summary = "\n\n### Context from memory\n" + "\n".join(lines) + "\n\n"
+    except Exception:
+        ctx_summary = ""
+
     # ============================================================================
     # AGENT 1: CODE WRITER (No tools - just generates code as text)
     # ============================================================================
     code_writer_agent = LlmAgent(
         name="CodeWriterAgent",
         model=LLM_MODEL,
-        instruction=f"""You are a senior software engineer specializing in project scaffolding and code generation.
+        instruction=f"""You are a senior software engineer specializing in project scaffolding and code generation.{ctx_summary}
 
     **Your Task:**
-    Generate a complete, runnable Python script that fulfills the user's request by programmatically creating files and folders.
+    Generate a complete, runnable Python script that fulfills the user's request by programmatically creating files and folders, leveraging the provided memory context when relevant.
 
     **Target Directory:** {TARGET_FOLDER_PATH}
 
