@@ -1,6 +1,0 @@
-title: "AI Chat Assistant"
-description: "Interactive development environment with AI chat support"
-
-sections:
-  - title: "Welcome"
-    contentPath: "README.md"
