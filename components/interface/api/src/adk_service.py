@@ -101,113 +101,188 @@ async def run_pipeline_async(user_message: str):
     # ============================================================================
     # AGENT 1: CODE WRITER (No tools - just generates code as text)
     # ============================================================================
-    code_writer_agent = LlmAgent(
-        name="CodeWriterAgent",
-        model=LLM_MODEL,
-        instruction=f"""You are a senior software engineer specializing in project scaffolding and code generation.{ctx_summary}
+    # code_writer_agent = LlmAgent(
+    #     name="CodeWriterAgent",
+    #     model=LLM_MODEL,
+    #     instruction=f"""You are a senior software engineer specializing in project scaffolding and code generation.{ctx_summary}
 
-    **Your Task:**
-    Generate a complete, runnable Python script that fulfills the user's request by programmatically creating files and folders, leveraging the provided memory context when relevant.
+    # **Your Task:**
+    # Generate a complete, runnable Python script that fulfills the user's request by programmatically creating files and folders, leveraging the provided memory context when relevant.
 
-    **Target Directory:** {TARGET_FOLDER_PATH}
+    # **Target Directory:** {TARGET_FOLDER_PATH}
 
-    **IMPORTANT: Start your response with a detailed analysis section:**
+    # **IMPORTANT: Start your response with a detailed analysis section:**
     
-    ## 📋 Problem Analysis
-    [Provide detailed reasoning about what the user wants to build, key requirements, and technical considerations]
+    # ## 📋 Problem Analysis
+    # [Provide detailed reasoning about what the user wants to build, key requirements, and technical considerations]
     
-    ## 🎯 Approach
-    [Explain your step-by-step approach to solve this problem, including:
-    - Project structure design
-    - Technology choices and why
-    - Key components and their purposes
-    - Implementation strategy]
+    # ## 🎯 Approach
+    # [Explain your step-by-step approach to solve this problem, including:
+    # - Project structure design
+    # - Technology choices and why
+    # - Key components and their purposes
+    # - Implementation strategy]
     
-    ## 💡 Key Code Snippets
-    [Highlight 2-3 important code patterns or configurations that make this solution work]
+    # ## 💡 Key Code Snippets
+    # [Highlight 2-3 important code patterns or configurations that make this solution work]
     
-    ## 🚀 How to Run
-    [Provide clear, step-by-step instructions on how to run the generated project:
-    1. Navigate to the project directory
-    2. Install dependencies (with exact commands)
-    3. Run the application (with exact commands)
-    4. Access the application (URLs, ports, etc.)]
+    # ## 🚀 How to Run
+    # [Provide clear, step-by-step instructions on how to run the generated project:
+    # 1. Navigate to the project directory
+    # 2. Install dependencies (with exact commands)
+    # 3. Run the application (with exact commands)
+    # 4. Access the application (URLs, ports, etc.)]
     
-    ---
+    # ---
     
-    **Then, generate the complete Python script:**
+    # **Then, generate the complete Python script:**
 
-    **Guidelines:**
-    1. **Understand the Request:** Carefully analyze what the user wants to build
+    # **Guidelines:**
+    # 1. **Understand the Request:** Carefully analyze what the user wants to build
 
-    2. **Generate Complete Code:** Create a fully working Python script with:
-    - Proper imports (os, subprocess, pathlib, json, etc.)
-    - Clear variable definitions
-    - Step-by-step logic to create project structure
-    - File creation with appropriate content
-    - Comprehensive error handling with try-except blocks
-    - Progress logging with descriptive print statements
+    # 2. **Generate Complete Code:** Create a fully working Python script with:
+    # - Proper imports (os, subprocess, pathlib, json, etc.)
+    # - Clear variable definitions
+    # - Step-by-step logic to create project structure
+    # - File creation with appropriate content
+    # - Comprehensive error handling with try-except blocks
+    # - Progress logging with descriptive print statements
     
-    3. **Project Structure Best Practices:**
-    - For React apps: Create manual structure (don't rely on create-react-app in generated code)
-    - For Python projects: Create proper package structure with __init__.py files
-    - Include README.md, .gitignore, package.json, and other standard files
-    - Generate actual working code content, not placeholders or TODOs
+    # 3. **Project Structure Best Practices:**
+    # - For React apps: Create manual structure (don't rely on create-react-app in generated code)
+    # - For Python projects: Create proper package structure with __init__.py files
+    # - Include README.md, .gitignore, package.json, and other standard files
+    # - Generate actual working code content, not placeholders or TODOs
     
-    4. **File Operations:**
-    - Use absolute paths: `os.path.join("{TARGET_FOLDER_PATH}", ...)`
-    - Create directories: `os.makedirs(path, exist_ok=True)`
-    - Write files with: `with open(path, 'w', encoding='utf-8') as f:`
-    - Wrap all file operations in try-except blocks
+    # 4. **File Operations:**
+    # - Use absolute paths: `os.path.join("{TARGET_FOLDER_PATH}", ...)`
+    # - Create directories: `os.makedirs(path, exist_ok=True)`
+    # - Write files with: `with open(path, 'w', encoding='utf-8') as f:`
+    # - Wrap all file operations in try-except blocks
     
-    5. **Code Structure Requirements:**
-    ```python
-    #!/usr/bin/env python3
-    \"\"\"
-    Script to create [project description]
-    Generated by CodeWriterAgent
-    \"\"\"
-    import os
-    import json
-    from pathlib import Path
+    # 5. **Code Structure Requirements:**
+    # ```python
+    # #!/usr/bin/env python3
+    # \"\"\"
+    # Script to create [project description]
+    # Generated by CodeWriterAgent
+    # \"\"\"
+    # import os
+    # import json
+    # from pathlib import Path
     
-    def main():
-        base_path = "{TARGET_FOLDER_PATH}"
-        project_name = "your-project-name"
-        project_path = os.path.join(base_path, project_name)
+    # def main():
+    #     base_path = "{TARGET_FOLDER_PATH}"
+    #     project_name = "your-project-name"
+    #     project_path = os.path.join(base_path, project_name)
         
-        try:
-            # Create directories
-            print(f"Creating project at: project_path")
-            os.makedirs(project_path, exist_ok=True)
+    #     try:
+    #         # Create directories
+    #         print(f"Creating project at: project_path")
+    #         os.makedirs(project_path, exist_ok=True)
             
-            # Create files with actual content
-            # ... your code here
+    #         # Create files with actual content
+    #         # ... your code here
             
-            print("✓ Project created successfully!")
-            return True
-        except Exception as e:
-            print(f"✗ Error creating project: e")
-            return False
+    #         print("✓ Project created successfully!")
+    #         return True
+    #     except Exception as e:
+    #         print(f"✗ Error creating project: e")
+    #         return False
     
+    # if __name__ == "__main__":
+    #     main()
+    # ```
+
+    # 6. **For React Projects - Manual Setup:**
+    # Create the following structure manually:
+    # - package.json with dependencies (react, react-dom, react-scripts)
+    # - public/index.html
+    # - src/index.js, src/App.js, src/App.css
+    # - .gitignore
+    # - README.md
+
+    # **Output Format:**
+    # First provide the analysis sections (Problem Analysis, Approach, Key Code Snippets, How to Run), then output the complete Python code.
+    # """,
+    #     description="Generates complete Python code for project creation with detailed reasoning",
+    #     output_key="generated_code"
+    # )
+
+    code_writer_agent = LlmAgent(
+    name="CodeWriterAgent",
+    model=LLM_MODEL,
+    instruction=f"""You are a senior Python code generator specializing in dynamic project scaffolding across all domains (e.g., web apps, data pipelines, ML projects, REST APIs, CLIs, etc.).
+
+**Task:** Generate a complete, executable Python script that programmatically creates the project structure requested by the user.
+
+**Target Directory:** {TARGET_FOLDER_PATH}
+
+**Requirements:**
+1. Output ONLY raw Python code (no markdown, no explanations)
+2. Include all necessary imports (os, json, pathlib, subprocess, etc.)
+3. Use a main() function with `if __name__ == "__main__":` guard
+4. All file paths must use `os.path.join("{TARGET_FOLDER_PATH}", ...)`
+5. Wrap ALL file operations in try-except blocks with descriptive error messages
+6. Add progress logging with clear, user-friendly print() statements
+7. Use `os.makedirs(path, exist_ok=True)` for directory creation
+8. Include a detailed module-level docstring describing the generated project
+9. The generated script must create real, content-filled files — not placeholders
+
+**Code Template:**
+```python
+#!/usr/bin/env python3
+\"\"\"
+Script to create [project description]
+Generated by CodeWriterAgent
+\"\"\"
+import os
+import json
+from pathlib import Path
+
+def main():
+    base_path = "{TARGET_FOLDER_PATH}"
+    project_name = "your-project-name"
+    project_path = os.path.join(base_path, project_name)
+    
+    try:
+        print(f"Creating project at: project_path")
+        os.makedirs(project_path, exist_ok=True)
+        
+        # Create files with actual content here
+        
+        print("✓ Project created successfully!")
+        return True
+    except Exception as e:
+        print(f"✗ Error: e")
+        return False
+
     if __name__ == "__main__":
         main()
-    ```
+    For Different Project Types:
 
-    6. **For React Projects - Manual Setup:**
-    Create the following structure manually:
-    - package.json with dependencies (react, react-dom, react-scripts)
-    - public/index.html
-    - src/index.js, src/App.js, src/App.css
-    - .gitignore
-    - README.md
+    Web Apps (React, Vue, Flask, Django, etc.): Include standard scaffolding files (e.g., HTML, JS, CSS, server scripts, README.md, .gitignore, etc.) with minimal functional code.
 
-    **Output Format:**
-    First provide the analysis sections (Problem Analysis, Approach, Key Code Snippets, How to Run), then output the complete Python code.
+    Data or ML Projects: Include folders for data/, notebooks/, src/, and models/, with basic starter scripts (data loader, training script, requirements.txt).
+
+    Backend APIs: Include app/ or api/ folder with main.py (Flask/FastAPI boilerplate), requirements.txt, .env, and documentation.
+
+    CLI Tools or Utilities: Include a functional main.py or cli.py with argparse or click, setup.py for packaging, and README.md.
+
+    General Projects: Include an organized folder hierarchy with example code files, configuration files, and setup metadata.
+
+    Critical:
+
+    Always generate COMPLETE, runnable Python code that can immediately execute to create the full project structure.
+
+    Every file must contain meaningful starter content relevant to the requested project type.
+
+    Output: Pure Python code only, ready to save as output.py.
     """,
-        description="Generates complete Python code for project creation with detailed reasoning",
-        output_key="generated_code"
+    description="Generates full Python code that builds complete project structures for any domain",
+    output_key="generated_code"
     )
+
 
     # ============================================================================
     # AGENT 2: CODE REVIEWER (No tools needed - just reviews text)
@@ -353,7 +428,7 @@ async def run_pipeline_async(user_message: str):
     1. Extract ONLY the Python code section (everything after the analysis sections)
     2. Use the `write_file` tool to save the code
     3. Filename: `output.py`
-    4. Full path: `{TARGET_FOLDER_PATH}output.py`
+    4. Full path: `{SCRIPT}`
     5. Content: The complete refactored Python code (without the markdown analysis sections)
 
     **CRITICAL:**
