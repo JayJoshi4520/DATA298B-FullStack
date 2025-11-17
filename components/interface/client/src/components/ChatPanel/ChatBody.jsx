@@ -150,6 +150,8 @@ export function ChatBody() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [exampleSet, setExampleSet] = useState(0);
   const messagesEndRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
 
     const examplePrompts = {
     agent: [
@@ -208,6 +210,22 @@ export function ChatBody() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Search functionality
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const results = messages.filter(msg => 
+      msg.content.toLowerCase().includes(query)
+    );
+    setSearchResults(results);
+  }, [searchQuery, messages]);
+
+  const filteredMessages = searchQuery.trim() ? searchResults : messages;
 
   if (messages.length === 0) {
     return (
@@ -319,12 +337,52 @@ export function ChatBody() {
 
   return (
     <div className="chat-body flex-grow-1" style={{ overflowY: "auto" }}>
-      <div className="p-3">
-        {messages.map((message) => (
-          <div key={message.id} className="message-wrapper">
-            <MessageComponent message={message} />
+      {/* Search Bar */}
+      {messages.length > 0 && (
+        <div className="p-3 pb-2 border-bottom" style={{ position: 'sticky', top: 0, background: 'rgba(13, 17, 23, 0.95)', backdropFilter: 'blur(10px)', zIndex: 10 }}>
+          <div className="input-group input-group-sm">
+            <span className="input-group-text">🔍</span>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Search in conversation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+            />
+            {searchQuery && (
+              <button 
+                className="btn btn-outline-secondary" 
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+              >
+                ❌
+              </button>
+            )}
           </div>
-        ))}
+          {searchQuery && (
+            <small className="text-muted mt-1 d-block">
+              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+            </small>
+          )}
+        </div>
+      )}
+      
+      <div className="p-3">
+        {filteredMessages.length === 0 && searchQuery ? (
+          <div className="text-center text-muted py-4">
+            <p>🔍 No messages found matching "{searchQuery}"</p>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setSearchQuery('')}>
+              Clear search
+            </button>
+          </div>
+        ) : (
+          filteredMessages.map((message) => (
+            <div key={message.id} className="message-wrapper">
+              <MessageComponent message={message} searchQuery={searchQuery} />
+            </div>
+          ))
+        )}
 
         {/* Agent Progress Panel - Shows real-time agent activity (replaces "Thinking...") */}
         {isLoading && <AgentProgressPanel />}

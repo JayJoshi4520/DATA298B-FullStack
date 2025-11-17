@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { execFileSync, spawn } from "child_process";
-import { time } from "console";
+import { spawn, execFileSync } from "child_process";
+import { TIMEOUTS, LIMITS, PATHS } from "./constants.js";
 import { MemoryService } from "./memory/memoryService.js";
 
 const PROJECT_DIR = "/home/coder/project/";
@@ -33,7 +33,7 @@ export class AgentService {
     const TARGET_DIR = PROJECT_DIR;
 
     await this.memory.saveTurn({ userId, sessionId, projectId, userMsg: task, assistantMsg: null, usage: null });
-    const ctx = await this.memory.getChatContext({ userId, sessionId, projectId, query: task, limit: 10 });
+    const ctx = await this.memory.getChatContext({ userId, sessionId, projectId, query: task, limit: LIMITS.MAX_CONTEXT_MESSAGES });
 
     const child = spawn("python3", [scriptPath, task], {
       env: {
@@ -100,6 +100,15 @@ export class AgentService {
         }
       } catch (e) {
         writeEvent("error", { code, message: e.message, raw: out });
+        // Index failed run for debugging
+        if (projectId) {
+          await this.memory.indexMemory({
+            scope: "project",
+            key: `adk-error:${new Date().toISOString()}`,
+            text: `ADK stream run failed. Task: ${task}. Error: ${e.message}`,
+            meta: { error: e.message, code },
+          });
+        }
       } finally {
         res.end();
       }
@@ -127,12 +136,12 @@ export class AgentService {
     const TARGET_DIR = PROJECT_DIR;
 
     await this.memory.saveTurn({ userId, sessionId, projectId, userMsg: task, assistantMsg: null, usage: null });
-    const ctx = await this.memory.getChatContext({ userId, sessionId, projectId, query: task, limit: 10 });
+    const ctx = await this.memory.getChatContext({ userId, sessionId, projectId, query: task, limit: LIMITS.MAX_CONTEXT_MESSAGES });
 
     try {
       const output = execFileSync("python3", [scriptPath, task], {
         encoding: "utf8",
-        timeout: 180000,
+        timeout: TIMEOUTS.ADK_PIPELINE,
         env: {
           ...process.env,
           TARGET_FOLDER_PATH: TARGET_DIR,
@@ -150,9 +159,9 @@ export class AgentService {
       try {
         const generatedScript = path.join(TARGET_DIR, "output.py");
         if (fs.existsSync(generatedScript)) {
-          const execOut = execFileSync("python", [generatedScript], {
+          const execOut = execFileSync("python3", [generatedScript], {
             encoding: "utf8",
-            timeout: 300000,
+            timeout: TIMEOUTS.OUTPUT_EXECUTION,
           });
           console.log("output.py execution output:\n", execOut);
         } else {
@@ -163,7 +172,7 @@ export class AgentService {
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const ARTIFACTS_ROOT = path.resolve(process.cwd(), "generate");
+      const ARTIFACTS_ROOT = path.resolve(process.cwd(), PATHS.ARTIFACTS_DIR);
       fs.mkdirSync(ARTIFACTS_ROOT, { recursive: true });
       const projectDir = path.join(
         ARTIFACTS_ROOT,
@@ -214,6 +223,15 @@ export class AgentService {
         success: false,
       });
       await this.memory.saveTurn({ userId, sessionId, projectId, userMsg: null, assistantMsg: `ADK run failed: ${err.message}`, usage: null });
+      // Index failed run for debugging
+      if (projectId) {
+        await this.memory.indexMemory({
+          scope: "project",
+          key: `adk-error:${new Date().toISOString()}`,
+          text: `ADK non-stream run failed. Task: ${task}. Error: ${err.message}`,
+          meta: { error: err.message, stack: err.stack },
+        });
+      }
       throw new Error("ADK execution failed: " + err.message);
     }
   }

@@ -1,9 +1,7 @@
-
 # adk_service.py — Fixed Async Session Creation (Generic ADK Pipeline)
 # ============================================
 
 import json
-from multiprocessing import process
 import sys
 import asyncio
 from google.adk.agents.llm_agent import LlmAgent
@@ -11,7 +9,7 @@ from google.adk.agents.sequential_agent import SequentialAgent
 from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.genai import types as genai_types
-from google.adk.agents import Agent, LoopAgent, LlmAgent, SequentialAgent
+from google.adk.agents import Agent, LoopAgent
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
 from google.adk.code_executors import BuiltInCodeExecutor
@@ -97,6 +95,86 @@ async def run_pipeline_async(user_message: str):
                 ctx_summary = "\n\n### Context from memory\n" + "\n".join(lines) + "\n\n"
     except Exception:
         ctx_summary = ""
+
+    # ============================================================================
+    # AGENT 0: BUSINESS ANALYST (Analyzes and clarifies requirements)
+    # ============================================================================
+    ba_agent = LlmAgent(
+        name="BusinessAnalystAgent",
+        model=LLM_MODEL,
+        instruction=f"""You are a SENIOR BUSINESS ANALYST specializing in translating user requests into detailed technical requirements.
+
+**Your Task:**
+Analyze the user's request and create a comprehensive requirements document that will guide the development team.
+
+**User Request:**
+{{original_request}}
+
+**Context:** {ctx_summary}
+
+**Analysis Framework:**
+
+1. **Requirements Clarification:**
+   - What is the core functionality requested?
+   - What are the implicit requirements not explicitly stated?
+   - What assumptions should we make?
+   - Are there any ambiguities that need clarification?
+
+2. **Technical Specifications:**
+   - Project type (React app, Vue dashboard, Python API, etc.)
+   - Key features and functionalities
+   - Technology stack recommendations
+   - Architecture patterns to use
+   - External dependencies or APIs needed
+
+3. **Scope Definition:**
+   - Must-have features (MVP)
+   - Nice-to-have features
+   - Out of scope items
+   - Estimated complexity (Simple/Medium/Complex)
+
+4. **Success Criteria:**
+   - How do we know the project is complete?
+   - What should the user be able to do?
+   - Performance expectations
+   - Quality standards
+
+5. **Risk Assessment:**
+   - Potential technical challenges
+   - Dependencies that might cause issues
+   - Areas that need extra attention
+
+**Output Format:**
+Provide a structured requirements document in markdown:
+
+# Project Requirements Analysis
+
+## 📋 Project Overview
+[Brief description]
+
+## 🎯 Core Requirements
+[List of must-have features]
+
+## 🛠️ Technical Stack
+[Recommended technologies and why]
+
+## 📐 Architecture
+[High-level architecture and patterns]
+
+## ✅ Success Criteria
+[How to measure success]
+
+## ⚠️ Risks & Considerations
+[Potential issues to watch for]
+
+## 📦 Deliverables
+[What files/folders should be created]
+
+Be thorough but concise. This document will guide the code generation process.
+""",
+        description="Analyzes user requirements and creates detailed technical specifications",
+        output_key="requirements_analysis"
+    )
 
     # ============================================================================
     # AGENT 1: CODE WRITER (No tools - just generates code as text)
@@ -210,32 +288,168 @@ async def run_pipeline_async(user_message: str):
     # )
 
     code_writer_agent = LlmAgent(
-    name="CodeWriterAgent",
-    model=LLM_MODEL,
-    instruction=f"""You are a senior Python code generator specializing in dynamic project scaffolding across all domains (e.g., web apps, data pipelines, ML projects, REST APIs, CLIs, etc.).
+        name="CodeWriterAgent",
+        model=LLM_MODEL,
+        instruction=f"""You are a SENIOR FULL-STACK SOFTWARE ENGINEER specializing in production-ready project scaffolding.
 
-**Task:** Generate a complete, executable Python script that programmatically creates the project structure requested by the user.
+**CRITICAL MISSION:** Generate a complete, immediately executable Python script that creates a FULLY FUNCTIONAL, PRODUCTION-READY project.
+
+**Requirements Analysis:**
+{{{{requirements_analysis}}}}
 
 **Target Directory:** {TARGET_FOLDER_PATH}
 
-**Requirements:**
-1. Output ONLY raw Python code (no markdown, no explanations)
-2. Include all necessary imports (os, json, pathlib, subprocess, etc.)
-3. Use a main() function with `if __name__ == "__main__":` guard
-4. All file paths must use `os.path.join("{TARGET_FOLDER_PATH}", ...)`
-5. Wrap ALL file operations in try-except blocks with descriptive error messages
-6. Add progress logging with clear, user-friendly print() statements
-7. Use `os.makedirs(path, exist_ok=True)` for directory creation
-8. Include a detailed module-level docstring describing the generated project
-9. The generated script must create real, content-filled files — not placeholders
+**ABSOLUTE REQUIREMENTS:**
+
+1. **CODE MUST WORK OUT OF THE BOX**
+   - Generate COMPLETE implementations, not stubs or TODOs
+   - Use MODERN, STABLE package versions (e.g., React 18+, Vue 3+, latest LTS)
+   - Include ALL necessary configuration files
+   - Every component must be fully implemented with real functionality
+
+2. **PROJECT-SPECIFIC STANDARDS:**
+
+   **For React Projects:**
+   - Use React 18+ with modern hooks (useState, useEffect, useContext)
+   - Include routing (react-router-dom v6+)
+   - Add state management if needed (Context API or Redux Toolkit)
+   - Create multiple working components (Layout, Header, Footer, main views)
+   - Include actual data fetching examples
+   - Use modern CSS (Tailwind CSS or CSS Modules)
+   - Generate working package.json with proper scripts
+   - Create .env.example for environment variables
+   
+   **For Vue Projects:**
+   - Use Vue 3 with Composition API
+   - Include Vue Router 4+
+   - Add Pinia for state management
+   - Create multiple working components with <script setup>
+   - Include actual API integration examples
+   - Use Vite for build tooling
+   - Generate proper vite.config.js
+   - Create complete main.js and App.vue
+   
+   **For Node.js/Express APIs:**
+   - Use Express 4+ with async/await
+   - Include proper middleware (cors, helmet, morgan)
+   - Create multiple working routes (CRUD operations)
+   - Add input validation (express-validator)
+   - Include error handling middleware
+   - Generate .env.example with all required variables
+   - Create proper package.json with all dependencies
+   
+   **For Python Projects:**
+   - Use modern Python 3.10+ features
+   - Include requirements.txt with specific versions
+   - Create proper package structure with __init__.py
+   - Add working examples of main functionality
+   - Include .env.example and config.py
+   - Generate setup.py for distribution
+
+3. **MANDATORY FILES FOR ALL PROJECTS:**
+   - README.md with complete setup instructions
+   - .gitignore appropriate for the tech stack
+   - .env.example with all environment variables
+   - package.json/requirements.txt with SPECIFIC versions
+   - Configuration files (vite.config.js, tsconfig.json, etc.)
+
+4. **CODE QUALITY STANDARDS:**
+   - NO placeholder comments like "Add your code here"
+   - NO TODO items in the generated code
+   - ALL functions must have implementations
+   - ALL imports must be correct and complete
+   - USE proper error handling everywhere
+   - ADD helpful comments explaining complex logic
+
+5. **SPECIFIC VERSION REQUIREMENTS:**
+   ```json
+   React ecosystem:
+   - "react": "^18.2.0"
+   - "react-dom": "^18.2.0"
+   - "react-router-dom": "^6.20.0"
+   - "react-scripts": "5.0.1" OR use Vite
+   
+   Vue ecosystem:
+   - "vue": "^3.3.0"
+   - "vue-router": "^4.2.0"
+   - "pinia": "^2.1.0"
+   - "vite": "^5.0.0"
+   
+   Express:
+   - "express": "^4.18.0"
+   - "cors": "^2.8.5"
+   - "dotenv": "^16.0.0"
+   - "helmet": "^7.1.0"
+   ```
+
+6. **PYTHON SCRIPT STRUCTURE:**
+   ```python
+   #!/usr/bin/env python3
+   ""
+   Complete [Project Type] Generator
+   Creates a production-ready [framework] project with all necessary files
+   ""
+   import os
+   import json
+   from pathlib import Path
+   
+   def create_file(path, content):
+       ""Helper to create file with error handling""
+       try:
+           os.makedirs(os.path.dirname(path), exist_ok=True)
+           with open(path, 'w', encoding='utf-8') as f:
+               f.write(content)
+           print(f"✓ Created: {{path}}")
+       except Exception as e:
+           print(f"✗ Error creating {{path}}: {{e}}")
+   
+   def main():
+       base_path = "{TARGET_FOLDER_PATH}"
+       project_name = "project-name"
+       project_path = os.path.join(base_path, project_name)
+       
+       print(f"Creating {{project_name}} at: {{project_path}}")
+       
+       # Create all directories
+       dirs = ["src", "public", "src/components", "src/pages", ...]
+       for dir in dirs:
+           os.makedirs(os.path.join(project_path, dir), exist_ok=True)
+       
+       # Create package.json with SPECIFIC VERSIONS
+       create_file(
+           os.path.join(project_path, "package.json"),
+           json.dumps({{...}}, indent=2)
+       )
+       
+       # Create ALL project files with COMPLETE content
+       # ...
+       
+       print("✓ Project created successfully!")
+       print("\nNext steps:")
+       print(f"1. cd {{project_path}}")
+       print("2. npm install")
+       print("3. npm run dev")
+   
+   if __name__ == "__main__":
+       main()
+   ```
+
+**CRITICAL SUCCESS FACTORS:**
+- User should be able to `npm install && npm run dev` immediately
+- Project should open without errors
+- All routes/pages should work
+- No console errors
+- Looks professional (not bare-bones)
+
+**OUTPUT:** Pure Python code ONLY. No markdown, no explanations. Code must be ready to save as output.py and execute immediately
 
 **Code Template:**
 ```python
 #!/usr/bin/env python3
-\"\"\"
+""
 Script to create [project description]
 Generated by CodeWriterAgent
-\"\"\"
+""
 import os
 import json
 from pathlib import Path
@@ -246,7 +460,7 @@ def main():
     project_path = os.path.join(base_path, project_name)
     
     try:
-        print(f"Creating project at: project_path")
+        print(f"Creating project at: {{{{project_path}}}}")
         os.makedirs(project_path, exist_ok=True)
         
         # Create files with actual content here
@@ -254,33 +468,25 @@ def main():
         print("✓ Project created successfully!")
         return True
     except Exception as e:
-        print(f"✗ Error: e")
+        print(f"✗ Error: {{{{e}}}}")
         return False
 
-    if __name__ == "__main__":
-        main()
-    For Different Project Types:
+if __name__ == "__main__":
+    main()
+```
 
-    Web Apps (React, Vue, Flask, Django, etc.): Include standard scaffolding files (e.g., HTML, JS, CSS, server scripts, README.md, .gitignore, etc.) with minimal functional code.
+**For Different Project Types:**
 
-    Data or ML Projects: Include folders for data/, notebooks/, src/, and models/, with basic starter scripts (data loader, training script, requirements.txt).
+- **Web Apps** (React, Vue, Flask, Django): Include complete scaffolding with HTML, JS, CSS, configs, README.md, .gitignore
+- **Data/ML Projects**: Include data/, notebooks/, src/, models/ folders with working scripts
+- **Backend APIs**: Include proper API structure with routes, middleware, error handling
+- **CLI Tools**: Include functional main with argparse/click, setup.py, documentation
+- **General Projects**: Organized folder hierarchy with complete, working code
 
-    Backend APIs: Include app/ or api/ folder with main.py (Flask/FastAPI boilerplate), requirements.txt, .env, and documentation.
-
-    CLI Tools or Utilities: Include a functional main.py or cli.py with argparse or click, setup.py for packaging, and README.md.
-
-    General Projects: Include an organized folder hierarchy with example code files, configuration files, and setup metadata.
-
-    Critical:
-
-    Always generate COMPLETE, runnable Python code that can immediately execute to create the full project structure.
-
-    Every file must contain meaningful starter content relevant to the requested project type.
-
-    Output: Pure Python code only, ready to save as output.py.
+**REMEMBER:** Generate COMPLETE, production-ready Python code that works immediately. NO placeholders, NO TODOs.
     """,
-    description="Generates full Python code that builds complete project structures for any domain",
-    output_key="generated_code"
+        description="Generates full Python code that builds complete project structures for any domain",
+        output_key="generated_code"
     )
 
 
@@ -290,65 +496,95 @@ def main():
     code_reviewer_agent = LlmAgent(
         name="CodeReviewerAgent",
         model=LLM_MODEL,
-        instruction="""You are an expert code reviewer specializing in Python automation scripts.
+        instruction="""You are a SENIOR CODE REVIEWER with ZERO tolerance for incomplete or non-production-ready code.
 
     **Your Task:**
-    Review the generated Python code for quality, correctness, and safety.
+    Review the generated Python code with EXTREME scrutiny for production readiness.
 
     **Code to Review:**
     {generated_code}
 
-    **Review Checklist:**
+    **STRICT REVIEW CHECKLIST:**
 
-    1. **Correctness:**
-    - Does it fulfill the original user request?
-    - Are all file paths constructed correctly using os.path.join()?
-    - Will it create the intended project structure?
-    - Are all necessary imports present?
+    1. **REJECT IF ANY OF THESE EXIST:**
+       - TODO comments
+       - "Add your code here" comments
+       - Placeholder text or stub functions
+       - Empty component implementations
+       - Missing function bodies
+       - Comments like "implement this later"
+       - Outdated package versions (React < 18, Vue < 3, etc.)
+       - Generic/vague configuration
 
-    2. **Error Handling:**
-    - Are all file operations wrapped in try-except blocks?
-    - Are meaningful error messages provided?
-    - Does it have proper error recovery?
+    2. **Package Version Requirements:**
+       - React projects MUST use React 18+ ("react": "^18.2.0")
+       - Vue projects MUST use Vue 3+ ("vue": "^3.3.0")
+       - Vue projects MUST use Vite ("vite": "^5.0.0"), NOT vue-cli
+       - Express projects MUST use Express 4.18+ ("express": "^4.18.0")
+       - REJECT if using Vue CLI or create-react-app without Vite
+       - REJECT if using old versions (Vue 2, React 17, etc.)
 
-    3. **Safety:**
-    - Does it avoid destructive operations?
-    - Are paths properly validated?
-    - Does it use exist_ok=True to avoid conflicts?
+    3. **Configuration File Validation:**
+       - package.json MUST have: name, version, scripts, dependencies
+       - package.json scripts MUST include: dev, build, preview/start
+       - For Vue: MUST have vite.config.js (NOT vue.config.js)
+       - For React with Vite: MUST have vite.config.js
+       - index.html MUST NOT use <%= BASE_URL %> (that's Vue CLI syntax)
+       - index.html MUST use proper Vite syntax or relative paths
 
-    4. **Completeness:**
-    - Are there any placeholder comments (TODO, "add more", etc.)?
-    - Does package.json have all required dependencies?
-    - Are all component files fully implemented?
-    - Is there a proper main() function with if __name__ guard?
+    4. **Component Completeness:**
+       - ALL components must have full implementations
+       - Components must have actual JSX/template content (not empty)
+       - Components must include real functionality (state, effects, handlers)
+       - NO placeholder text like "Content goes here"
+       - Must include multiple pages/views (Home, About, Dashboard, etc.)
 
-    5. **Code Quality:**
-    - Clear variable names?
-    - Proper logging/print statements?
-    - Well-organized and readable?
-    - Has docstring at the top?
+    5. **Functionality Requirements:**
+       - Must include routing (React Router or Vue Router)
+       - Must include actual data examples (mock data is OK)
+       - Must include working navigation
+       - Must include styled components (actual CSS, not empty)
+       - For dashboards: Must include cards, charts, or data display
 
-    6. **Content Quality:**
-    - For React: Are components functional with proper JSX?
-    - For HTML: Is it valid HTML5?
-    - For CSS: Are styles appropriate?
-    - No empty files or placeholder content?
+    6. **File Structure:**
+       - Must have proper directory structure (src/, public/, components/)
+       - Must include README.md with complete setup instructions
+       - Must include .gitignore
+       - Must include .env.example if env vars are used
+       - Configuration files must be present (vite.config.js, etc.)
+
+    7. **Code Quality:**
+       - All imports must be present and correct
+       - No syntax errors in JavaScript/JSX
+       - Proper error handling in Python script
+       - Clear variable names
+       - Helpful comments (but NO TODOs)
+
+    **CRITICAL: Be EXTREMELY STRICT**
+    - If you find even ONE TODO, REJECT
+    - If you find outdated versions, REJECT
+    - If you find incomplete implementations, REJECT
+    - If you find placeholder comments, REJECT
+    - If configuration is wrong (BASE_URL, old Vue CLI), REJECT
 
     **Output Format:**
-    - If code is production-ready: "APPROVED: Code is complete and ready to save."
-    - If issues exist:
+    - If code is PERFECT and production-ready: "APPROVED: Code is production-ready and ready to save."
+    - If ANY issues exist:
     ```
     ISSUES FOUND:
-    - Missing error handling in file creation (lines X-Y)
-    - package.json missing dependency: [name]
-    - App.js contains placeholder TODO comments
-    - No main() function or if __name__ guard
-    [Continue listing all specific issues]
+    - index.html uses <%= BASE_URL %> which is specific to vue-cli and might not work without vue-cli. It should be replaced with a proper relative path or a public URL.
+    - The Vue CLI service version in package.json is quite old (4.5.0). Consider updating it to a more recent stable version, or removing it if the project is not intended to use Vue CLI.
+    - The created dashboard is very basic. While it fulfills the request, it lacks actual dashboard components or layout. More advanced components and a dashboard layout should be implemented to make it a functional dashboard.
+    - The App.vue component and routing are minimal. It only includes links to "Home" and "About". Consider adding a default route or a dashboard view.
+    - TODO found in App.js at line 15: "Add authentication logic"
+    - package.json uses outdated React version (17.0.2), must be 18.2.0+
+    - Component Home.jsx is empty with only placeholder text
+    [List EVERY specific issue found]
     ```
 
-    Be specific about what needs fixing. Output ONLY the review result.
+    Be RUTHLESS. Only approve PERFECT, production-ready code.
     """,
-        description="Reviews generated code for completeness and correctness",
+        description="Strictly reviews generated code for production readiness",
         output_key="review_comments"
     )
 
@@ -445,6 +681,80 @@ def main():
         output_key="save_status"
     )
 
+    # ============================================================================
+    # AGENT 5: TESTING & VALIDATION AGENT (Validates and tests the generated project)
+    # ============================================================================
+    testing_agent = LlmAgent(
+        name="TestingAgent",
+        model=LLM_MODEL,
+        tools=[filesystem_toolset],
+        instruction=f"""You are a QA ENGINEER specializing in validation and testing of generated projects.
+
+**Your Task:**
+Validate that output.py was saved correctly and test the generated project for completeness and correctness.
+
+**Validation Steps:**
+
+1. **File Verification:**
+   - Confirm output.py exists at {SCRIPT}
+   - Use read_file tool to verify the content
+   - Check file size is reasonable (not empty, not truncated)
+   - Verify Python syntax is valid
+
+2. **Code Quality Checks:**
+   - No TODO comments in the generated code
+   - All imports are present
+   - All functions have implementations
+   - No placeholder text like "Add your code here"
+   - Proper error handling exists
+
+3. **Project Structure Validation:**
+   - Analyze what the script will create
+   - Verify all necessary files will be generated (package.json, README, etc.)
+   - Check that file paths are correct and absolute
+   - Ensure directory creation logic is sound
+
+4. **Technology-Specific Checks:**
+   - For React/Vue: Verify package.json has all dependencies
+   - For Python: Check requirements.txt exists
+   - For all: Verify .gitignore is appropriate
+   - For all: Confirm README has setup instructions
+
+5. **Execution Safety:**
+   - Check for any potentially harmful operations
+   - Verify paths are within {TARGET_FOLDER_PATH}
+   - Confirm no hardcoded credentials or secrets
+
+**Output Format:**
+
+```
+# Validation Report
+
+## ✅ Passed Checks
+- [List all checks that passed]
+
+## ❌ Failed Checks (if any)
+- [List any issues found]
+
+## 📊 Summary
+- Total checks: X
+- Passed: Y
+- Failed: Z
+- Status: PASS/FAIL
+
+## 🎯 Recommendations
+- [Any suggestions for improvement]
+
+## 🚀 Next Steps
+[What the user should do next to use the generated project]
+```
+
+Be thorough and critical. If you find any issues, clearly explain what's wrong and why it matters.
+""",
+        description="Validates and tests the generated project for completeness and correctness",
+        output_key="test_results"
+    )
+
 
 
     # ============================================================================
@@ -455,7 +765,7 @@ def main():
     code_improvement_loop = LoopAgent(
         name="CodeImprovementLoop",
         sub_agents=[code_reviewer_agent, code_refactorer_agent],
-        max_iterations=1,
+        max_iterations=3,
         description="Iteratively reviews and refactors code until approved or max iterations"
     )
 
@@ -464,11 +774,13 @@ def main():
     code_pipeline_agent = SequentialAgent(
         name="FullPipelineAgent",
         sub_agents=[
-            code_writer_agent,
-            code_improvement_loop,  
-            file_saver_agent,
+            ba_agent,              # 1. Analyze requirements
+            code_writer_agent,     # 2. Generate code
+            code_improvement_loop, # 3. Review & refactor
+            file_saver_agent,      # 4. Save to disk
+            testing_agent,         # 5. Validate & test
         ],
-        description="Complete pipeline: generates, improves, saves, and EXECUTES the code to build the project",
+        description="Complete pipeline: analyzes requirements, generates code, improves it, saves it, and validates the result",
     )
 
     # ============================================================================
@@ -496,10 +808,14 @@ def main():
     
     # Emit agent sequence
     agents_sequence = [
-        {"name": "CodeWriterAgent", "description": "Analyzing problem and generating code"},
+        {"name": "BusinessAnalystAgent", "description": "Analyzing requirements and creating specifications"},
+        {"name": "CodeWriterAgent", "description": "Generating production-ready code"},
         {"name": "CodeReviewerAgent", "description": "Reviewing code quality"},
-        {"name": "CodeRefactorerAgent", "description": "Refactoring code"},
-        {"name": "FileSaverAgent", "description": "Saving project files"},
+        {"name": "CodeRefactorerAgent", "description": "Refactoring and improving code"},
+        {"name": "SyntaxValidatorAgent", "description": "Validating Python syntax"},
+        {"name": "FileSaverAgent", "description": "Saving files to disk"},
+        {"name": "ProjectExecutorAgent", "description": "Executing output.py and creating project"},
+        {"name": "TestingAgent", "description": "Validating and testing the generated project"},
     ]
     
     agent_index = 0

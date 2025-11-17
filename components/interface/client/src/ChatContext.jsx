@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import { toast } from "react-toastify";
 
 const ChatContext = createContext();
 
@@ -12,6 +13,65 @@ export const ChatContextProvider = ({ children }) => {
   const [agentActivity, setAgentActivity] = useState([]); 
   const [activeAgent, setActiveAgent] = useState(null); 
   const sseRef = useRef(null);
+  
+  // Session management state
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [sessionName, setSessionName] = useState("New Chat");
+  const autoSaveTimeoutRef = useRef(null);
+
+  // Load sessions from API on mount
+  useEffect(() => {
+    loadSessionsFromAPI();
+  }, []);
+
+  const loadSessionsFromAPI = async () => {
+    try {
+      const response = await fetch('/api/memory/sessions?limit=50');
+      const data = await response.json();
+      const apiSessions = (data.sessions || []).map(s => ({
+        id: s.id,
+        name: s.metadata?.chatName || `Chat ${new Date(s.createdAt).toLocaleString()}`,
+        messages: s.metadata?.messages || [],
+        mode: s.metadata?.mode || 'ask',
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt || s.createdAt,
+      }));
+      setSessions(apiSessions);
+    } catch (err) {
+      console.error('Failed to load sessions from API:', err);
+      // Fallback to localStorage
+      const savedSessions = localStorage.getItem('chatSessions');
+      if (savedSessions) {
+        try {
+          setSessions(JSON.parse(savedSessions));
+        } catch (e) {
+          console.error('Failed to load from localStorage:', e);
+        }
+      }
+    }
+  };
+
+  // Auto-save current session when messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    // Set new timeout for auto-save (debounce)
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      saveCurrentSession();
+    }, 2000); // Auto-save after 2 seconds of inactivity
+    
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [messages]);
 
   const stopStream = useCallback(() => {
     try { sseRef.current?.close?.(); } catch {}
@@ -184,10 +244,153 @@ export const ChatContextProvider = ({ children }) => {
     }
   }, [messages, sendMessage]);
 
+  // Session management functions
+  const saveCurrentSession = useCallback(async () => {
+    if (messages.length === 0) return;
+
+    try {
+      const sessionData = {
+        metadata: {
+          chatName: sessionName,
+          messages: messages,
+          mode: mode,
+          messageCount: messages.length,
+        }
+      };
+
+      let savedSessionId = currentSessionId;
+
+      if (currentSessionId) {
+        // Update existing session
+        await fetch(`/api/memory/sessions/${currentSessionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sessionData)
+        });
+      } else {
+        // Create new session
+        const response = await fetch('/api/memory/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sessionData)
+        });
+        const data = await response.json();
+        savedSessionId = data.id;
+        setCurrentSessionId(savedSessionId);
+      }
+
+      // Reload sessions from API
+      await loadSessionsFromAPI();
+
+      // Also save to localStorage as backup
+      const session = {
+        id: savedSessionId,
+        name: sessionName,
+        messages: messages,
+        mode: mode,
+        createdAt: currentSessionId ? sessions.find(s => s.id === currentSessionId)?.createdAt || new Date().toISOString() : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const existingIndex = sessions.findIndex(s => s.id === session.id);
+      let updatedSessions;
+      if (existingIndex >= 0) {
+        updatedSessions = [...sessions];
+        updatedSessions[existingIndex] = session;
+      } else {
+        updatedSessions = [session, ...sessions];
+      }
+      localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
+    } catch (err) {
+      console.error('Failed to save session to API:', err);
+      toast.error('❌ Failed to save session');
+    }
+  }, [messages, currentSessionId, sessionName, mode, sessions]);
+
+  const loadSession = useCallback((session) => {
+    setMessages(session.messages || []);
+    setMode(session.mode || 'ask');
+    setCurrentSessionId(session.id);
+    setSessionName(session.name);
+    toast.info(`📋 Loaded: ${session.name}`);
+  }, []);
+
+  const deleteSession = useCallback(async (sessionId) => {
+    try {
+      // Delete from API
+      await fetch(`/api/memory/sessions/${sessionId}`, {
+        method: 'DELETE'
+      });
+
+      // Update local state
+      const updatedSessions = sessions.filter(s => s.id !== sessionId);
+      setSessions(updatedSessions);
+      localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
+      
+      if (currentSessionId === sessionId) {
+        setMessages([]);
+        setCurrentSessionId(null);
+        setSessionName('New Chat');
+      }
+      
+      toast.success('✅ Session deleted');
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      toast.error('❌ Failed to delete session');
+    }
+  }, [sessions, currentSessionId]);
+
+  const newSession = useCallback(() => {
+    if (messages.length > 0) {
+      saveCurrentSession();
+    }
+    setMessages([]);
+    setCurrentSessionId(null);
+    setSessionName('New Chat');
+    setAgentActivity([]);
+    setInsights([]);
+    toast.info('🆕 New chat started');
+  }, [messages, saveCurrentSession]);
+
+  const renameSession = useCallback(async (sessionId, newName) => {
+    try {
+      // Update session name in API
+      const session = sessions.find(s => s.id === sessionId);
+      if (session) {
+        await fetch(`/api/memory/sessions/${sessionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metadata: {
+              ...session.metadata,
+              chatName: newName,
+              messages: session.messages,
+              mode: session.mode,
+            }
+          })
+        });
+      }
+
+      // Update local state
+      const updatedSessions = sessions.map(s => 
+        s.id === sessionId ? { ...s, name: newName, updatedAt: new Date().toISOString() } : s
+      );
+      setSessions(updatedSessions);
+      localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
+      
+      if (currentSessionId === sessionId) {
+        setSessionName(newName);
+      }
+    } catch (err) {
+      console.error('Failed to rename session:', err);
+      toast.error('❌ Failed to rename session');
+    }
+  }, [sessions, currentSessionId]);
+
   return (
     <ChatContext.Provider
       value={{
         messages,
+        setMessages,
         sendMessage,
         isLoading,
         clearMessages,
@@ -200,6 +403,16 @@ export const ChatContextProvider = ({ children }) => {
         agentActivity,
         activeAgent,
         stopStream,
+        // Session management
+        sessions,
+        currentSessionId,
+        sessionName,
+        setSessionName,
+        saveCurrentSession,
+        loadSession,
+        deleteSession,
+        newSession,
+        renameSession,
       }}
     >
       {children}

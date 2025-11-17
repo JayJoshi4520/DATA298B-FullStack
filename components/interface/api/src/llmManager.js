@@ -91,7 +91,8 @@ export class LLMManager {
 
       try {
         console.log(`=================== Using ${providerName} provider ===================`);
-        const response = await provider.generateResponse(
+        // Use generateResponseWithRetry for automatic retry logic
+        const response = await provider.generateResponseWithRetry(
           messages,
           tools,
           options,

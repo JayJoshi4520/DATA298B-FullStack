@@ -5,13 +5,13 @@ export class MemoryService {
     this.store = new SQLiteStore(opts.dbPath);
   }
 
-  async getChatContext({ userId, sessionId, projectId, query, limit = 10 }) {
+  async getChatContext({ userId, sessionId, projectId, query, limit = 30 }) {
     if (userId) this.store.ensureUser(userId);
     if (sessionId) this.store.ensureSession({ sessionId, userId, projectId });
 
     const summary = sessionId ? this.store.getSessionSummary(sessionId) : null;
     const recentMessages = sessionId ? this.store.getRecentMessages(sessionId, limit) : [];
-    const recentMemories = projectId ? this.store.searchMemories({ scope: "project", query, topK: 5 }) : [];
+    const recentMemories = projectId ? this.store.searchMemories({ scope: "project", query, topK: 10 }) : [];
 
     return { summary, recentMessages, recentMemories };
   }
@@ -35,9 +35,9 @@ export class MemoryService {
 
   async updateSessionSummary(sessionId) {
     if (!sessionId) return;
-    const recent = this.store.getRecentMessages(sessionId, 20);
+    const recent = this.store.getRecentMessages(sessionId, 50);
     const text = recent.map((m) => `${m.role}: ${m.content}`).join("\n");
-    const lines = text.split("\n").slice(-12);
+    const lines = text.split("\n").slice(-30);
     const summary = lines.join("\n");
     this.store.setSessionSummary(sessionId, summary);
   }
@@ -52,5 +52,19 @@ export class MemoryService {
   // Generic memory indexing for project/session/user scoped notes
   async indexMemory({ scope, key, text, meta }) {
     this.store.addMemory({ scope, key, text, meta });
+  }
+
+  // Check if semantic search is enabled
+  isSemanticSearchEnabled() {
+    return this.store.embeddings && typeof this.store.embeddings.generateEmbedding === 'function';
+  }
+
+  // Semantic search using embeddings
+  async semanticSearch({ scope, query, topK = 10 }) {
+    if (!this.isSemanticSearchEnabled()) {
+      // Fallback to keyword search
+      return this.store.searchMemories({ scope, query, topK });
+    }
+    return await this.store.semanticSearch({ scope, query, topK });
   }
 }

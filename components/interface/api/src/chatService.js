@@ -100,8 +100,8 @@ Always be helpful, provide detailed explanations, and include relevant code exam
       chatMessages.push({ role: "system", content: `Relevant project notes:\n${bullets}` });
     }
 
-    // Add recent history provided by client (keep last 10 for context)
-    (history || []).slice(-10).forEach((msg) => {
+    // Add recent history provided by client (keep last 20 for context)
+    (history || []).slice(-20).forEach((msg) => {
       if (msg.role === "user" || msg.role === "assistant") {
         chatMessages.push({ role: msg.role, content: msg.content });
       }

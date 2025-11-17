@@ -1,4 +1,5 @@
 import { BaseLLMProvider } from "./baseLLMProvider.js";
+import { LLM } from '../constants.js';
 
 export class VertexAIProvider extends BaseLLMProvider {
   constructor(config) {
@@ -30,8 +31,8 @@ export class VertexAIProvider extends BaseLLMProvider {
       const payload = {
         contents: contents,
         generationConfig: {
-          temperature: options.temperature || 0.7,
-          maxOutputTokens: options.maxTokens || 2048,
+          temperature: options.temperature || LLM.DEFAULT_TEMPERATURE,
+          maxOutputTokens: options.maxTokens || LLM.DEFAULT_MAX_TOKENS,
         },
       };
 
@@ -61,7 +62,7 @@ export class VertexAIProvider extends BaseLLMProvider {
       console.log("=================== Endpoint: ====================\n", endpoint);
       console.log("=================== Payload: ====================\n", JSON.stringify(payload, null, 2));
 
-      const response = await fetch(endpoint, {
+      const response = await this.fetchWithTimeout(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
