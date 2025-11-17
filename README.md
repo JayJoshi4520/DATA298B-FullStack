@@ -1,4 +1,4 @@
-# DATA 298B Project
+# Multi Agent Collaboration 
 
 ## Try it out
 
