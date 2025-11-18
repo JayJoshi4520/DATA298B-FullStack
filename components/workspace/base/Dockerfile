@@ -19,7 +19,7 @@ RUN mkdir -p /home/coder/.config/code-server && \
     chown -R 1000:1000 /home/coder
 
 RUN apt update && \
-    apt install -y jq python3 python3-pip && \
+    apt install -y jq python3 python3-pip python3.11-venv && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
     rm -rf /var/lib/apt/lists/*
 # nvm installation moved to coder user stage

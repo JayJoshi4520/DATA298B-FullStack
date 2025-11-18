@@ -1,0 +1,17 @@
+
+.App {
+  text-align: center;
+  padding: 20px;
+}
+
+.weather-card {
+  margin: 20px auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  width: 300px;
+  border-radius: 5px;
+}
+
+.weather-card h2 {
+  margin-top: 0;
+}

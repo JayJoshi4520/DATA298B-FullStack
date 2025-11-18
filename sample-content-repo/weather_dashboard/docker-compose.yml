@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:5000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - OWM_API_KEY=${OWM_API_KEY}
+    volumes:
+      - ./backend:/app
