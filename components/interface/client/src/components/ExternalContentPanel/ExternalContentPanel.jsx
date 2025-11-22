@@ -93,24 +93,6 @@ export function ExternalContentPanel() {
               }
             }}
           />
-          {activeTab && (
-            <ButtonGroup size="sm">
-              <Button 
-                variant={viewMode === 'iframe' ? 'primary' : 'outline-primary'}
-                onClick={() => setViewMode('iframe')}
-                title="View in iframe"
-              >
-                🔲 Browser
-              </Button>
-              <Button 
-                variant={viewMode === 'code' ? 'primary' : 'outline-primary'}
-                onClick={() => setViewMode('code')}
-                title="View code with syntax highlighting"
-              >
-                📜 Code
-              </Button>
-            </ButtonGroup>
-          )}
         </div>
       </div>
       {activeTab ? (

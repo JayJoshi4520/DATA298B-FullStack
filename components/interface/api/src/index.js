@@ -238,7 +238,7 @@ app.get("/api/adk/stream", adkLimiter, async (req, res) => {
 
     req.on("close", () => {
       clearInterval(hb);
-      try { cleanup?.(); } catch {}
+      try { cleanup?.(); } catch { }
     });
   } catch (error) {
     console.error("=================== ADK stream failed: ===================", error);
@@ -263,23 +263,101 @@ app.get("/api/labspace", (req, res) => {
 });
 
 // -----------------------------
+// 📁 Workspace Files Endpoint (for @ mention feature)
+// -----------------------------
+app.get("/api/workspace/files", async (req, res) => {
+  try {
+    const workspaceRoot = process.env.WORKSPACE_PATH || "/home/coder/project";
+    const maxDepth = parseInt(req.query.maxDepth) || 3;
+    const query = req.query.query?.toLowerCase() || "";
+
+    const files = [];
+
+    const walkDir = (dir, depth = 0, relativePath = "") => {
+      if (depth > maxDepth) return;
+
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          // Skip hidden files and common ignore patterns
+          if (entry.name.startsWith('.') ||
+            entry.name === 'node_modules' ||
+            entry.name === '__pycache__' ||
+            entry.name === 'dist' ||
+            entry.name === 'build') {
+            continue;
+          }
+
+          const fullPath = path.join(dir, entry.name);
+          const relPath = path.join(relativePath, entry.name);
+
+          if (entry.isDirectory()) {
+            files.push({
+              path: `/${relPath}`,
+              type: 'directory',
+              name: entry.name,
+            });
+            walkDir(fullPath, depth + 1, relPath);
+          } else if (entry.isFile()) {
+            files.push({
+              path: `/${relPath}`,
+              type: 'file',
+              name: entry.name,
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`Error reading directory ${dir}:`, err.message);
+      }
+    };
+
+    if (fs.existsSync(workspaceRoot)) {
+      walkDir(workspaceRoot);
+    }
+
+    // Filter by query if provided
+    let filteredFiles = files;
+    if (query) {
+      filteredFiles = files.filter(f =>
+        f.path.toLowerCase().includes(query) ||
+        f.name.toLowerCase().includes(query)
+      );
+    }
+
+    // Limit results
+    const limit = parseInt(req.query.limit) || 100;
+    filteredFiles = filteredFiles.slice(0, limit);
+
+    res.json({
+      files: filteredFiles,
+      total: filteredFiles.length,
+      workspaceRoot,
+    });
+  } catch (error) {
+    console.error("Workspace files error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// -----------------------------
 // 📊 Memory Analytics Endpoint
 // -----------------------------
 app.get("/api/memory/stats", (req, res) => {
   try {
     const db = agentService.memory.store.db;
-    
+
     // Get basic counts
     const totalMessages = db.prepare("SELECT COUNT(*) as count FROM messages").get().count;
     const totalSessions = db.prepare("SELECT COUNT(*) as count FROM sessions").get().count;
     const totalUsers = db.prepare("SELECT COUNT(*) as count FROM users").get().count;
     const totalToolRuns = db.prepare("SELECT COUNT(*) as count FROM tool_runs").get().count;
     const totalMemories = db.prepare("SELECT COUNT(*) as count FROM memories").get().count;
-    
+
     // Calculate success rate for tool runs
     const successfulRuns = db.prepare("SELECT COUNT(*) as count FROM tool_runs WHERE success = 1").get().count;
     const successRate = totalToolRuns > 0 ? ((successfulRuns / totalToolRuns) * 100).toFixed(2) : 0;
-    
+
     // Get token usage stats (if available)
     const tokenStats = db.prepare(`
       SELECT 
@@ -288,27 +366,27 @@ app.get("/api/memory/stats", (req, res) => {
       FROM messages 
       WHERE token_usage_json IS NOT NULL
     `).get();
-    
+
     // Recent activity
     const recentSessions = db.prepare(`
       SELECT COUNT(*) as count 
       FROM sessions 
       WHERE created_at > datetime('now', '-7 days')
     `).get().count;
-    
+
     const recentMessages = db.prepare(`
       SELECT COUNT(*) as count 
       FROM messages 
       WHERE created_at > datetime('now', '-7 days')
     `).get().count;
-    
+
     // Memory breakdown by scope
     const memoryByScope = db.prepare(`
       SELECT scope, COUNT(*) as count 
       FROM memories 
       GROUP BY scope
     `).all();
-    
+
     res.json({
       summary: {
         totalMessages,
@@ -321,7 +399,7 @@ app.get("/api/memory/stats", (req, res) => {
       tokens: {
         messagesWithTokens: tokenStats.messages_with_tokens || 0,
         totalTokens: tokenStats.total_tokens || 0,
-        averagePerMessage: tokenStats.messages_with_tokens > 0 
+        averagePerMessage: tokenStats.messages_with_tokens > 0
           ? Math.round(tokenStats.total_tokens / tokenStats.messages_with_tokens)
           : 0,
       },
@@ -349,7 +427,7 @@ app.get("/api/memory/export/:sessionId", (req, res) => {
     const { sessionId } = req.params;
     const limit = parseInt(req.query.limit) || 1000;
     const db = agentService.memory.store.db;
-    
+
     // Get session info
     const sessionInfo = db.prepare(`
       SELECT s.*, u.id as user_id 
@@ -357,11 +435,11 @@ app.get("/api/memory/export/:sessionId", (req, res) => {
       LEFT JOIN users u ON s.user_id = u.id
       WHERE s.id = ?
     `).get(sessionId);
-    
+
     if (!sessionInfo) {
       return res.status(404).json({ error: "Session not found" });
     }
-    
+
     // Get all messages
     const messages = db.prepare(`
       SELECT role, content, created_at, token_usage_json
@@ -370,7 +448,7 @@ app.get("/api/memory/export/:sessionId", (req, res) => {
       ORDER BY created_at ASC
       LIMIT ?
     `).all(sessionId, limit);
-    
+
     // Get tool runs
     const toolRuns = db.prepare(`
       SELECT name, input_json, output_json, success, created_at
@@ -378,7 +456,7 @@ app.get("/api/memory/export/:sessionId", (req, res) => {
       WHERE session_id = ?
       ORDER BY created_at ASC
     `).all(sessionId);
-    
+
     // Calculate total tokens
     const totalTokens = messages.reduce((sum, msg) => {
       if (msg.token_usage_json) {
@@ -391,7 +469,7 @@ app.get("/api/memory/export/:sessionId", (req, res) => {
       }
       return sum;
     }, 0);
-    
+
     res.json({
       session: {
         id: sessionInfo.id,
@@ -436,7 +514,7 @@ app.get("/api/memory/sessions", (req, res) => {
     const userId = req.query.userId;
     const limit = parseInt(req.query.limit) || 50;
     const db = agentService.memory.store.db;
-    
+
     let query = `
       SELECT 
         s.id,
@@ -448,18 +526,18 @@ app.get("/api/memory/sessions", (req, res) => {
       FROM sessions s
       LEFT JOIN messages m ON s.id = m.session_id
     `;
-    
+
     const params = [];
     if (userId) {
       query += " WHERE s.user_id = ?";
       params.push(userId);
     }
-    
+
     query += ` GROUP BY s.id ORDER BY s.created_at DESC LIMIT ?`;
     params.push(limit);
-    
+
     const sessions = db.prepare(query).all(...params);
-    
+
     res.json({
       sessions: sessions.map(s => ({
         id: s.id,
@@ -484,15 +562,15 @@ app.get("/api/memory/sessions", (req, res) => {
 app.get("/api/memory/semantic-search", async (req, res) => {
   try {
     const { scope, query, topK } = req.query;
-    
+
     if (!scope || !query) {
-      return res.status(400).json({ 
-        error: "Both 'scope' and 'query' parameters are required" 
+      return res.status(400).json({
+        error: "Both 'scope' and 'query' parameters are required"
       });
     }
 
     if (!agentService.memory.isSemanticSearchEnabled()) {
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: "Semantic search is not enabled. Please configure GOOGLE_API_KEY or LLM_API_KEY.",
         fallback: "Use keyword search instead"
       });
@@ -525,7 +603,7 @@ app.get("/api/memory/export/:sessionId/file", async (req, res) => {
     const format = req.query.format || 'json'; // json or txt
     const limit = parseInt(req.query.limit) || 1000;
     const db = agentService.memory.store.db;
-    
+
     // Get session info
     const sessionInfo = db.prepare(`
       SELECT s.*, u.id as user_id 
@@ -533,11 +611,11 @@ app.get("/api/memory/export/:sessionId/file", async (req, res) => {
       LEFT JOIN users u ON s.user_id = u.id
       WHERE s.id = ?
     `).get(sessionId);
-    
+
     if (!sessionInfo) {
       return res.status(404).json({ error: "Session not found" });
     }
-    
+
     // Get all messages
     const messages = db.prepare(`
       SELECT role, content, created_at
@@ -546,7 +624,7 @@ app.get("/api/memory/export/:sessionId/file", async (req, res) => {
       ORDER BY created_at ASC
       LIMIT ?
     `).all(sessionId, limit);
-    
+
     if (format === 'txt') {
       // Plain text format
       let content = `Session: ${sessionInfo.id}\n`;
@@ -554,13 +632,13 @@ app.get("/api/memory/export/:sessionId/file", async (req, res) => {
       content += `Created: ${sessionInfo.created_at}\n`;
       content += `Messages: ${messages.length}\n`;
       content += `\n${'='.repeat(80)}\n\n`;
-      
+
       messages.forEach(msg => {
         content += `[${msg.created_at}] ${msg.role.toUpperCase()}:\n`;
         content += `${msg.content}\n\n`;
         content += `${'-'.repeat(80)}\n\n`;
       });
-      
+
       res.setHeader('Content-Type', 'text/plain');
       res.setHeader('Content-Disposition', `attachment; filename="session-${sessionId}.txt"`);
       res.send(content);
@@ -581,7 +659,7 @@ app.get("/api/memory/export/:sessionId/file", async (req, res) => {
         })),
         exportedAt: new Date().toISOString(),
       };
-      
+
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Content-Disposition', `attachment; filename="session-${sessionId}.json"`);
       res.json(data);
@@ -598,16 +676,16 @@ app.get("/api/memory/export/:sessionId/file", async (req, res) => {
 app.post("/api/memory/embeddings/generate", async (req, res) => {
   try {
     const { scope, limit } = req.body;
-    
+
     if (!agentService.memory.isSemanticSearchEnabled()) {
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: "Embeddings are not enabled. Please configure GOOGLE_API_KEY or LLM_API_KEY."
       });
     }
-    
+
     const db = agentService.memory.store.db;
     const maxLimit = parseInt(limit) || 100;
-    
+
     // Get memories without embeddings
     let query = `
       SELECT m.id, m.text
@@ -615,18 +693,18 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
       LEFT JOIN embeddings e ON m.id = e.memory_id
       WHERE e.id IS NULL
     `;
-    
+
     const params = [];
     if (scope) {
       query += " AND m.scope = ?";
       params.push(scope);
     }
-    
+
     query += " LIMIT ?";
     params.push(maxLimit);
-    
+
     const memories = db.prepare(query).all(...params);
-    
+
     if (memories.length === 0) {
       return res.json({
         message: "All memories already have embeddings",
@@ -634,7 +712,7 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
         total: 0,
       });
     }
-    
+
     // Generate embeddings in background
     const results = {
       total: memories.length,
@@ -642,7 +720,7 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
       failed: 0,
       errors: [],
     };
-    
+
     // Process embeddings (limit rate to avoid API throttling)
     for (const memory of memories) {
       try {
@@ -657,7 +735,7 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
           results.failed++;
           results.errors.push({ id: memory.id, error: "No vector returned" });
         }
-        
+
         // Small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
@@ -665,7 +743,7 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
         results.errors.push({ id: memory.id, error: error.message });
       }
     }
-    
+
     res.json({
       message: "Batch embedding generation complete",
       ...results,
@@ -683,15 +761,15 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
 app.get("/api/memory/embeddings/status", (req, res) => {
   try {
     const db = agentService.memory.store.db;
-    
+
     const totalMemories = db.prepare("SELECT COUNT(*) as count FROM memories").get().count;
     const withEmbeddings = db.prepare(
       "SELECT COUNT(DISTINCT memory_id) as count FROM embeddings"
     ).get().count;
     const withoutEmbeddings = totalMemories - withEmbeddings;
-    
+
     const coverage = totalMemories > 0 ? ((withEmbeddings / totalMemories) * 100).toFixed(2) : 0;
-    
+
     res.json({
       enabled: agentService.memory.isSemanticSearchEnabled(),
       totalMemories,
@@ -712,36 +790,36 @@ app.get("/api/memory/embeddings/status", (req, res) => {
 app.post("/api/multi-agent/run", async (req, res) => {
   try {
     const { task, mode, context } = req.body;
-    
+
     if (!task) {
       return res.status(400).json({ error: "Task is required" });
     }
 
     if (!multiAgentOrchestrator) {
-      return res.status(503).json({ 
-        error: "Multi-agent mode is not available. Please configure GOOGLE_API_KEY or LLM_API_KEY." 
+      return res.status(503).json({
+        error: "Multi-agent mode is not available. Please configure GOOGLE_API_KEY or LLM_API_KEY."
       });
     }
 
     // Mode: "multi" for multi-agent, "single" for traditional
     if (mode === "multi") {
       const result = await multiAgentOrchestrator.processRequest(task, context || {});
-      
+
       // Optional: Execute with ADK to create actual files
       if (context.executeWithADK) {
         console.log("🔧 Executing multi-agent results with ADK...");
-        
+
         // Combine all agent outputs into a single execution plan
         const combinedOutput = result.result.agentOutputs
           .map(output => `## ${output.agentName}\n${output.output}`)
           .join('\n\n');
-        
+
         // Execute with ADK to create files
         const adkResult = await agentService.runADKPipeline(
           `Implement the following plan:\n\n${combinedOutput}`,
           { userId: context.userId, sessionId: context.sessionId, projectId: context.projectId }
         );
-        
+
         return res.json({
           success: true,
           mode: "multi-agent-with-execution",
@@ -750,7 +828,7 @@ app.post("/api/multi-agent/run", async (req, res) => {
           message: "Multi-agent plan created and executed. Files saved to /generated folder."
         });
       }
-      
+
       res.json({
         success: true,
         mode: "multi-agent",
@@ -758,8 +836,8 @@ app.post("/api/multi-agent/run", async (req, res) => {
       });
     } else {
       // Fallback to single agent (current ADK)
-      return res.status(400).json({ 
-        error: "Single agent mode should use /api/adk/run endpoint" 
+      return res.status(400).json({
+        error: "Single agent mode should use /api/adk/run endpoint"
       });
     }
   } catch (error) {
@@ -777,11 +855,11 @@ app.get("/api/multi-agent/workflow/:workflowId", (req, res) => {
 
     const { workflowId } = req.params;
     const workflow = multiAgentOrchestrator.getWorkflowStatus(workflowId);
-    
+
     if (!workflow) {
       return res.status(404).json({ error: "Workflow not found" });
     }
-    
+
     res.json(workflow);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -796,8 +874,8 @@ app.get("/api/multi-agent/workflows", (req, res) => {
     }
 
     const workflows = multiAgentOrchestrator.listActiveWorkflows();
-    res.json({ 
-      workflows, 
+    res.json({
+      workflows,
       count: workflows.length,
       timestamp: new Date().toISOString(),
     });
@@ -887,10 +965,10 @@ app.post("/api/seed-database", (req, res) => {
       agentService.memory.store.createTemplate(template);
     });
 
-    res.json({ 
-      success: true, 
-      message: `Seeded ${templates.length} templates`, 
-      count: templates.length 
+    res.json({
+      success: true,
+      message: `Seeded ${templates.length} templates`,
+      count: templates.length
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -904,7 +982,7 @@ app.post("/api/seed-database", (req, res) => {
 app.post("/api/templates", (req, res) => {
   try {
     const { name, description, category, taskTemplate, tags, userId, isPublic } = req.body;
-    
+
     if (!name || !taskTemplate) {
       return res.status(400).json({ error: "Name and taskTemplate are required" });
     }
@@ -945,7 +1023,7 @@ app.get("/api/templates", (req, res) => {
 app.get("/api/templates/:id", (req, res) => {
   try {
     const template = agentService.memory.store.getTemplate(req.params.id);
-    
+
     if (!template) {
       return res.status(404).json({ error: "Template not found" });
     }
@@ -981,7 +1059,7 @@ app.delete("/api/templates/:id", (req, res) => {
 app.post("/api/workflows", (req, res) => {
   try {
     const { name, description, userId, mode, task } = req.body;
-    
+
     if (!name || !task) {
       return res.status(400).json({ error: "Name and task are required" });
     }
@@ -1019,7 +1097,7 @@ app.get("/api/workflows", (req, res) => {
 app.get("/api/workflows/:id", (req, res) => {
   try {
     const workflow = agentService.memory.store.getWorkflow(req.params.id);
-    
+
     if (!workflow) {
       return res.status(404).json({ error: "Workflow not found" });
     }
@@ -1036,7 +1114,7 @@ app.get("/api/workflows/:id", (req, res) => {
 app.put("/api/workflows/:id", (req, res) => {
   try {
     const { status, result, executionTime, agentOutputs } = req.body;
-    
+
     agentService.memory.store.updateWorkflow(req.params.id, {
       status,
       resultJson: result,
@@ -1081,13 +1159,13 @@ app.get("/api/workflows/:id/export", (req, res) => {
   try {
     const { format } = req.query; // 'json' or 'yaml'
     const workflow = agentService.memory.store.getWorkflow(req.params.id);
-    
+
     if (!workflow) {
       return res.status(404).json({ error: "Workflow not found" });
     }
 
     const steps = agentService.memory.store.getWorkflowSteps(req.params.id);
-    
+
     const exportData = {
       version: '1.0',
       type: 'workflow',
@@ -1121,13 +1199,13 @@ app.get("/api/workflows/:id/export", (req, res) => {
 app.post("/api/workflows/import", (req, res) => {
   try {
     const { data, format, userId } = req.body;
-    
+
     if (!data) {
       return res.status(400).json({ error: "Data is required" });
     }
 
     let parsedData;
-    
+
     if (format === 'yaml') {
       parsedData = yaml.parse(data);
     } else {
@@ -1182,7 +1260,7 @@ app.get("/api/multi-agent/stream", async (req, res) => {
   try {
     const task = req.query.task;
     const mode = req.query.mode || 'multi';
-    
+
     if (!task) {
       return res.status(400).json({ error: "Task is required" });
     }
@@ -1245,7 +1323,7 @@ app.get("/api/multi-agent/stream", async (req, res) => {
 app.post("/api/approvals", (req, res) => {
   try {
     const { workflowId, stepNumber, question, options, userId } = req.body;
-    
+
     if (!question) {
       return res.status(400).json({ error: "Question is required" });
     }
@@ -1268,7 +1346,7 @@ app.post("/api/approvals", (req, res) => {
 app.get("/api/approvals/pending", (req, res) => {
   try {
     const { userId } = req.query;
-    
+
     if (!userId) {
       return res.status(400).json({ error: "userId is required" });
     }
@@ -1283,7 +1361,7 @@ app.get("/api/approvals/pending", (req, res) => {
 app.get("/api/approvals/:id", (req, res) => {
   try {
     const approval = agentService.memory.store.getApproval(req.params.id);
-    
+
     if (!approval) {
       return res.status(404).json({ error: "Approval not found" });
     }
@@ -1297,7 +1375,7 @@ app.get("/api/approvals/:id", (req, res) => {
 app.post("/api/approvals/:id/respond", (req, res) => {
   try {
     const { response } = req.body;
-    
+
     if (!response) {
       return res.status(400).json({ error: "Response is required" });
     }
@@ -1321,17 +1399,17 @@ app.post("/api/git/init", async (req, res) => {
   try {
     const { projectPath } = req.body;
     const targetPath = projectPath || '/home/coder/project';
-    
+
     // Execute git init command
     const { spawn } = await import('child_process');
-    
+
     const gitInit = spawn('git', ['init'], { cwd: targetPath });
-    
+
     let output = '';
     gitInit.stdout.on('data', (data) => {
       output += data.toString();
     });
-    
+
     gitInit.on('close', (code) => {
       if (code === 0) {
         res.json({ success: true, message: 'Git repository initialized', output });
@@ -1348,15 +1426,15 @@ app.post("/api/git/status", async (req, res) => {
   try {
     const { projectPath } = req.body;
     const targetPath = projectPath || '/home/coder/project';
-    
+
     const { spawn } = await import('child_process');
     const gitStatus = spawn('git', ['status', '--porcelain'], { cwd: targetPath });
-    
+
     let output = '';
     gitStatus.stdout.on('data', (data) => {
       output += data.toString();
     });
-    
+
     gitStatus.on('close', (code) => {
       if (code === 0) {
         const changes = output.split('\n').filter(line => line.trim());
@@ -1373,30 +1451,30 @@ app.post("/api/git/status", async (req, res) => {
 app.post("/api/git/commit", async (req, res) => {
   try {
     const { message, projectPath } = req.body;
-    
+
     if (!message) {
       return res.status(400).json({ error: "Commit message is required" });
     }
-    
+
     const targetPath = projectPath || '/home/coder/project';
     const { spawn } = await import('child_process');
-    
+
     // Add all files
     const gitAdd = spawn('git', ['add', '.'], { cwd: targetPath });
-    
+
     gitAdd.on('close', (code) => {
       if (code !== 0) {
         return res.status(500).json({ error: 'Git add failed' });
       }
-      
+
       // Commit
       const gitCommit = spawn('git', ['commit', '-m', message], { cwd: targetPath });
-      
+
       let output = '';
       gitCommit.stdout.on('data', (data) => {
         output += data.toString();
       });
-      
+
       gitCommit.on('close', (commitCode) => {
         if (commitCode === 0) {
           res.json({ success: true, message: 'Changes committed', output });
@@ -1417,33 +1495,33 @@ app.post("/api/git/commit", async (req, res) => {
 app.post("/api/test/run", async (req, res) => {
   try {
     const { workflowId, testCommand, projectPath } = req.body;
-    
+
     if (!testCommand) {
       return res.status(400).json({ error: "Test command is required" });
     }
-    
+
     const targetPath = projectPath || '/home/coder/project';
     const { spawn } = await import('child_process');
-    
+
     const startTime = Date.now();
     const [command, ...args] = testCommand.split(' ');
     const testProcess = spawn(command, args, { cwd: targetPath });
-    
+
     let output = '';
     let errors = '';
-    
+
     testProcess.stdout.on('data', (data) => {
       output += data.toString();
     });
-    
+
     testProcess.stderr.on('data', (data) => {
       errors += data.toString();
     });
-    
+
     testProcess.on('close', (code) => {
       const duration = Date.now() - startTime;
       const status = code === 0 ? 'passed' : 'failed';
-      
+
       // Save test results if workflowId provided
       if (workflowId) {
         agentService.memory.store.recordTestResult({
@@ -1456,7 +1534,7 @@ app.post("/api/test/run", async (req, res) => {
           output: { stdout: output, stderr: errors, exitCode: code }
         });
       }
-      
+
       res.json({
         success: code === 0,
         status,
@@ -1474,14 +1552,14 @@ app.post("/api/test/run", async (req, res) => {
 app.get("/api/test/results/:workflowId", (req, res) => {
   try {
     const results = agentService.memory.store.getTestResults(req.params.workflowId);
-    
+
     const summary = {
       total: results.length,
       passed: results.filter(r => r.status === 'passed').length,
       failed: results.filter(r => r.status === 'failed').length,
       totalDuration: results.reduce((sum, r) => sum + (r.duration || 0), 0)
     };
-    
+
     res.json({ results, summary });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1495,17 +1573,17 @@ app.get("/api/test/results/:workflowId", (req, res) => {
 app.get("/api/analytics/performance", (req, res) => {
   try {
     const { metricType, startDate, endDate, limit } = req.query;
-    
+
     const metrics = agentService.memory.store.getPerformanceMetrics({
       metricType,
       startDate,
       endDate,
       limit: parseInt(limit) || 100
     });
-    
+
     // Calculate statistics
     const stats = {};
-    
+
     if (metrics.length > 0) {
       const values = metrics.map(m => m.value);
       stats.count = values.length;
@@ -1514,7 +1592,7 @@ app.get("/api/analytics/performance", (req, res) => {
       stats.max = Math.max(...values);
       stats.median = values.sort((a, b) => a - b)[Math.floor(values.length / 2)];
     }
-    
+
     res.json({ metrics, stats });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1524,7 +1602,7 @@ app.get("/api/analytics/performance", (req, res) => {
 app.get("/api/analytics/events", (req, res) => {
   try {
     const { eventType, userId, startDate, endDate, limit } = req.query;
-    
+
     const events = agentService.memory.store.getAnalytics({
       eventType,
       userId,
@@ -1532,13 +1610,13 @@ app.get("/api/analytics/events", (req, res) => {
       endDate,
       limit: parseInt(limit) || 100
     });
-    
+
     // Group by event type for summary
     const summary = {};
     events.forEach(event => {
       summary[event.eventType] = (summary[event.eventType] || 0) + 1;
     });
-    
+
     res.json({ events, summary, count: events.length });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1548,18 +1626,18 @@ app.get("/api/analytics/events", (req, res) => {
 app.post("/api/analytics/event", (req, res) => {
   try {
     const { eventType, eventData, userId, sessionId } = req.body;
-    
+
     if (!eventType) {
       return res.status(400).json({ error: "Event type is required" });
     }
-    
+
     agentService.memory.store.logEvent({
       eventType,
       eventData,
       userId,
       sessionId
     });
-    
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1573,15 +1651,15 @@ app.post("/api/analytics/event", (req, res) => {
 app.post("/api/collaboration/session", (req, res) => {
   try {
     const { workflowId, participants } = req.body;
-    
+
     const sessionId = randomUUID();
     const db = agentService.memory.store.db;
-    
+
     const stmt = db.prepare(
       "INSERT INTO collaboration_sessions(id, workflow_id, participants_json) VALUES (?, ?, ?)"
     );
     stmt.run(sessionId, workflowId, JSON.stringify(participants || []));
-    
+
     res.json({ success: true, sessionId });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1591,13 +1669,13 @@ app.post("/api/collaboration/session", (req, res) => {
 app.post("/api/collaboration/event", (req, res) => {
   try {
     const { sessionId, userId, eventType, eventData } = req.body;
-    
+
     const db = agentService.memory.store.db;
     const stmt = db.prepare(
       "INSERT INTO collaboration_events(collab_session_id, user_id, event_type, event_data_json) VALUES (?, ?, ?, ?)"
     );
     stmt.run(sessionId, userId, eventType, JSON.stringify(eventData || {}));
-    
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1611,7 +1689,7 @@ app.get("/api/collaboration/events/:sessionId", (req, res) => {
       "SELECT * FROM collaboration_events WHERE collab_session_id = ? ORDER BY created_at DESC LIMIT 100"
     );
     const events = stmt.all(req.params.sessionId);
-    
+
     res.json({ events, count: events.length });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1644,10 +1722,10 @@ const PORT = process.env.PORT || 3030;
     // Graceful shutdown handler
     const gracefulShutdown = async (signal) => {
       console.log(`\n${signal} received, shutting down gracefully...`);
-      
+
       server.close(async () => {
         console.log('✅ HTTP server closed');
-        
+
         try {
           // Close database connections
           closeDatabase();
@@ -1655,21 +1733,21 @@ const PORT = process.env.PORT || 3030;
         } catch (error) {
           console.error('Error during shutdown:', error);
         }
-        
+
         process.exit(0);
       });
-      
+
       // Force close after 10 seconds
       setTimeout(() => {
         console.error('⚠️  Forced shutdown after timeout');
         process.exit(1);
       }, 10000);
     };
-    
+
     // Register shutdown handlers
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    
+
   } catch (error) {
     console.error("Failed to start server: ", error);
     process.exit(1);

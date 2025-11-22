@@ -79,21 +79,48 @@ async def run_pipeline_async(user_message: str):
             recent_msgs = c.get("recentMessages") or []
             notes = c.get("recentMemories") or []
             lines = []
+            
             if summary:
                 lines.append("Session summary:\n" + summary)
+            
             if recent_msgs:
-                # include last up to 6 messages compactly
-                last_msgs = recent_msgs[-6:]
-                msg_lines = [f"- {m.get('role')}: {m.get('content')[:200]}" for m in last_msgs if m.get('content')]
+                # Use all messages provided in context (already limited by caller)
+                # Format: "role: content"
+                msg_lines = [f"- {m.get('role')}: {m.get('content')}" for m in recent_msgs if m.get('content')]
                 if msg_lines:
                     lines.append("Recent messages:\n" + "\n".join(msg_lines))
+            
             if notes:
-                note_lines = [f"- {n.get('text', '')[:200]}" for n in notes]
+                note_lines = []
+                for n in notes:
+                    text = n.get('text', '')
+                    note_lines.append(f"- {text}")
+                    
+                    # Check for "Artifacts at" pattern to include file listing
+                    # Pattern matches: "Artifacts at /path/to/dir"
+                    if "Artifacts at " in text:
+                        try:
+                            # Extract path (assuming it's the last part or clearly delimited)
+                            # Simple heuristic: split by "Artifacts at " and take the rest of the line
+                            parts = text.split("Artifacts at ")
+                            if len(parts) > 1:
+                                path_part = parts[1].split(".")[0].strip() # Stop at dot if present
+                                if os.path.exists(path_part) and os.path.isdir(path_part):
+                                    files = os.listdir(path_part)
+                                    # Filter for relevant files (skip hidden, etc.)
+                                    visible_files = [f for f in files if not f.startswith('.')]
+                                    if visible_files:
+                                        note_lines.append(f"  - Files in {os.path.basename(path_part)}: {', '.join(visible_files)}")
+                        except Exception as e:
+                            print(f"Error listing artifacts: {e}", file=sys.stderr)
+
                 if note_lines:
                     lines.append("Relevant project notes:\n" + "\n".join(note_lines))
+            
             if lines:
                 ctx_summary = "\n\n### Context from memory\n" + "\n".join(lines) + "\n\n"
-    except Exception:
+    except Exception as e:
+        print(f"Error parsing ADK_CONTEXT: {e}", file=sys.stderr)
         ctx_summary = ""
 
     # ============================================================================

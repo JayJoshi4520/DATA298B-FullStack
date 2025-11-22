@@ -1,0 +1,189 @@
+@import "../../variables";
+
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: rgba($bg-dark, 0.8);
+    backdrop-filter: blur($glass-blur);
+    border-right: 1px solid $border-subtle;
+    display: flex;
+    flex-direction: column;
+    transition: $transition-smooth;
+    z-index: 1000;
+    position: relative;
+
+    &.hidden {
+        margin-left: -260px;
+    }
+
+    &.collapsed {
+        width: 80px;
+
+        &.hidden {
+            margin-left: -80px;
+        }
+
+        .brand-text,
+        .nav-text {
+            opacity: 0;
+            width: 0;
+            display: none;
+        }
+
+        .nav-link {
+            justify-content: center;
+            padding: 0.75rem;
+        }
+
+        .new-chat-btn {
+            padding: 0.5rem;
+
+            span:not(.material-symbols-outlined) {
+                display: none;
+            }
+        }
+
+        .collapse-btn {
+            display: none;
+        }
+    }
+}
+
+.sidebar-header {
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid $border-subtle;
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: $text-primary;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 1.25rem;
+        overflow: hidden;
+        white-space: nowrap;
+
+        .brand-icon {
+            font-size: 1.75rem;
+            background: $gradient-primary;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    }
+
+    .collapse-btn {
+        background: transparent;
+        border: none;
+        color: $text-muted;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: $transition-base;
+
+        &:hover {
+            background: rgba($text-muted, 0.1);
+            color: $text-primary;
+        }
+    }
+}
+
+.new-chat-btn {
+    background: $gradient-primary;
+    border: none;
+    font-weight: 600;
+    transition: $transition-base;
+    box-shadow: $shadow-sm;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: $shadow-md;
+    }
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 1.5rem 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    color: $text-secondary;
+    text-decoration: none;
+    border-radius: $border-radius-base;
+    transition: $transition-base;
+    white-space: nowrap;
+    overflow: hidden;
+
+    .material-symbols-outlined {
+        font-size: 1.5rem;
+        color: $text-muted;
+        transition: $transition-base;
+    }
+
+    &:hover {
+        background: $bg-glass-hover;
+        color: $text-primary;
+
+        .material-symbols-outlined {
+            color: $primary;
+        }
+    }
+
+    &.active {
+        background: rgba($primary, 0.15);
+        color: $primary;
+        font-weight: 600;
+        border: 1px solid rgba($primary, 0.2);
+
+        .material-symbols-outlined {
+            color: $primary;
+        }
+    }
+}
+
+.sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid $border-subtle;
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        border-radius: $border-radius-base;
+        color: $text-secondary;
+        cursor: pointer;
+        transition: $transition-base;
+
+        &:hover {
+            background: $bg-glass-hover;
+            color: $text-primary;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: $gradient-secondary;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.875rem;
+        }
+    }
+}

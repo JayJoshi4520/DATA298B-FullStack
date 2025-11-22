@@ -1,0 +1,83 @@
+
+> lab-interface@0.0.0 build
+> vite build
+
+vite v7.2.2 building client environment for production...
+transforming...
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+  ╷
+2 │ @import "./variables";
+  │         ^^^^^^^^^^^^^
+  ╵
+    src/App.scss 2:9  root stylesheet
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+10 │ @import "bootstrap/scss/functions";
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src/App.scss 10:9  root stylesheet
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+11 │ @import "bootstrap/scss/variables";
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src/App.scss 11:9  root stylesheet
+
+DEPRECATION WARNING [import]: Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+   ╷
+12 │ @import "bootstrap/scss/bootstrap";
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   ╵
+    src/App.scss 12:9  root stylesheet
+
+✓ 32 modules transformed.
+✗ Build failed in 353ms
+error during build:
+[vite:css] [sass] Undefined variable.
+   ╷
+50 │ $border-color: $border-subtle;
+   │                ^^^^^^^^^^^^^^
+   ╵
+  src/_variables.scss 50:16  @import
+  src/App.scss 2:9           root stylesheet
+file: /Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/src/App.scss
+
+[sass] Undefined variable.
+   ╷
+50 │ $border-color: $border-subtle;
+   │                ^^^^^^^^^^^^^^
+   ╵
+  src/_variables.scss 50:16  @import
+  src/App.scss 2:9           root stylesheet
+
+Error: Undefined variable.
+   ╷
+50 │ $border-color: $border-subtle;
+   │                ^^^^^^^^^^^^^^
+   ╵
+  src/_variables.scss 50:16  @import
+  src/App.scss 2:9           root stylesheet
+    at Object.wrapException (/Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:2316:47)
+    at /Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:89077:23
+    at _wrapJsFunctionForAsync_closure.$protected (/Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:4984:15)
+    at _wrapJsFunctionForAsync_closure.call$2 (/Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:38171:12)
+    at Object._asyncStartSync (/Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:4948:20)
+    at _EvaluateVisitor2.visitVariableExpression$body$_EvaluateVisitor0 (/Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:89083:16)
+    at _EvaluateVisitor2.visitVariableExpression$1 (/Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:89057:19)
+    at VariableExpression0.accept$1$1 (/Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:125418:22)
+    at VariableExpression0.accept$1 (/Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:125421:19)
+    at /Users/spartan/Desktop/Study/DATA298B/avirit/Multi_Agent_SDE/components/interface/client/node_modules/sass/sass.dart.js:88843:23

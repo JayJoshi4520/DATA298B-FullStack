@@ -1,105 +1,102 @@
 // ============================================================================
 // CENTRALIZED COLOR VARIABLES
 // ============================================================================
-// Use these variables across all components instead of hardcoding colors
 
-// Brand Colors (from brand guidelines)
-$blue: #2560ff;
-$purple: #5700bb;
-$red: #e40c2c;
-$orange: #da5c00;
-$yellow: #eb9c00;
-$green: #2d9568;
-$teal: #2c9ea0;
+// Brand Colors (Modern & Vibrant)
+$blue: #3b82f6;
+$purple: #8b5cf6;
+$red: #ef4444;
+$orange: #f97316;
+$yellow: #eab308;
+$green: #10b981;
+$teal: #14b8a6;
+$cyan: #06b6d4;
+$pink: #ec4899;
 
-// Gray Scale
-$gray-100: #e7eaef !default;
-$gray-200: #c8cfda !default;
-$gray-300: #a9b4c6 !default;
-$gray-400: #8b99b2 !default;
-$gray-500: #6c7e9d !default;
-$gray-600: #566581 !default;
-$gray-700: #434c5f !default;
-$gray-800: #2c333f !default;
-$gray-900: #1e2129 !default;
-$black: #0f121b !default;
+// Gray Scale (Cool Tones)
+$gray-50: #f8fafc;
+$gray-100: #f1f5f9;
+$gray-200: #e2e8f0;
+$gray-300: #cbd5e1;
+$gray-400: #94a3b8;
+$gray-500: #64748b;
+$gray-600: #475569;
+$gray-700: #334155;
+$gray-800: #1e293b;
+$gray-900: #0f172a;
+$gray-950: #020617;
 
-// Todo App Colors (extracted from App.css)
-$todo-bg: #f4f4f9;
-$todo-text: #333;
-$todo-white: #fff;
-$todo-border: #ddd;
-$todo-border-light: #eee;
-$todo-primary: #7d5fff;
-$todo-primary-hover: #5a42d4;
-$todo-danger: #ff4d4d;
-$todo-completed: #aaa;
-$todo-item-bg: #fafafa;
+// Dark Theme Colors (Deep Space)
+$body-bg: #030712; // Very deep blue/black
+$body-color: #f8fafc;
+$primary: $blue;
+$secondary: $purple;
+$success: $green;
+$danger: $red;
+$warning: $yellow;
+$info: $cyan;
 
-// Dark Theme Colors
-$body-bg: #0F1116;
-$body-color: #E6EAF2;
-$primary: #667eea;
-$secondary: #764ba2;
-$success: #2d9568;
-$danger: #e40c2c;
-$warning: #eb9c00;
-$info: #2c9ea0;
-$border-color: #1E2633;
-$link-color: #667eea;
-
-// Neon/Glow Colors
-$neon-cyan: #667eea;
-$neon-blue: #764ba2;
-$glow-blue: rgba(18, 176, 255, 0.22);
-$glow-cyan: rgba(0, 255, 255, 0.25);
+// Glassmorphism Variables
+$glass-bg: rgba(15, 23, 42, 0.6);
+$glass-bg-hover: rgba(30, 41, 59, 0.7);
+$glass-border: rgba(148, 163, 184, 0.1);
+$glass-border-highlight: rgba(148, 163, 184, 0.2);
+$glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+$glass-blur: 12px;
 
 // Semantic Colors
-$text-primary: #F5F7FA;
-$text-secondary: #E6EAF2;
-$text-muted: #8FA3B8;
-$text-light: #BFD6E6;
+$text-primary: $gray-50;
+$text-secondary: $gray-300;
+$text-muted: $gray-400;
+$text-light: $gray-200;
 
 // Background Colors
-$bg-glass: rgba(255, 255, 255, 0.04);
-$bg-glass-hover: rgba(255, 255, 255, 0.08);
-$bg-dark: #0A0F16;
-$bg-darker: #0B121B;
-$bg-panel: rgba(255, 255, 255, 0.02);
+$bg-dark: #020617;
+$bg-darker: #000000;
+$bg-card: rgba(30, 41, 59, 0.4);
+$bg-panel: rgba(15, 23, 42, 0.5);
 
 // Border Colors
-$border-glass: rgba(18, 176, 255, 0.12);
-$border-glow: rgba(18, 176, 255, 0.22);
-$border-subtle: #1D2430;
+$border-subtle: rgba(148, 163, 184, 0.1);
+$border-light: rgba(148, 163, 184, 0.2);
 
-// Shadow Colors
-$shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.1);
-$shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
-$shadow-lg: 0 12px 28px rgba(18, 176, 255, 0.35);
-$shadow-glow: 0 0 20px rgba(18, 176, 255, 0.15);
+// Gradients
+$gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+$gradient-secondary: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+$gradient-success: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+$gradient-dark: linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.9) 100%);
+$gradient-glow: radial-gradient(circle at top center, rgba(59, 130, 246, 0.15), transparent 70%);
 
-// Gradient Colors
-$gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 60%);
-$gradient-user-message: linear-gradient(135deg, #41c6c6 0%, #12B0FF 80%);
-$gradient-assistant-bg: linear-gradient(180deg, #0A0F16 0%, #0B121B 100%);
-$gradient-purple: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
-
-// Agent Activity Colors
-$agent-panel-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
-$agent-panel-border: rgba(99, 102, 241, 0.5);
-$agent-panel-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-$agent-activity-bg: rgba(255, 255, 255, 0.05);
-$agent-activity-border: rgba(99, 102, 241, 0.5);
+// Shadows
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+$shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
 
 // Typography
-$font-family-sans-serif: "Montserrat", "Zalando Sans SemiExpanded", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-$font-family-monospace: "Roboto Mono", "Courier New", Courier, monospace;
-$font-size-base: 0.875rem;
+$font-family-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
+$font-family-monospace: 'JetBrains Mono', 'Fira Code', monospace;
+$font-size-base: 0.9375rem; // 15px
 
-// Misc
-$light-bg-subtle-dark: $gray-800;
-$border-radius-base: 8px;
-$border-radius-lg: 12px;
-$border-radius-xl: 16px;
-$transition-base: all 0.2s ease;
-$transition-fast: all 0.15s ease;
+// Transitions
+$transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+// Border Radius
+$border-radius-sm: 0.375rem;
+$border-radius-base: 0.5rem;
+$border-radius-lg: 0.75rem;
+$border-radius-xl: 1rem;
+$border-radius-2xl: 1.5rem;
+// Legacy aliases (Must be at the end to ensure referenced variables are defined)
+$bg-glass: $glass-bg;
+$bg-glass-hover: $glass-bg-hover;
+$border-color: $border-subtle;
+$text-color: $text-primary;
+$bg-color: $bg-dark;
+$transition-fast: $transition-base;
+$transition-normal: $transition-base;
+$todo-white: #ffffff;
+$neon-cyan: $cyan;
+$neon-blue: $blue;

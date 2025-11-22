@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Container, Form, Button, Alert, Badge, Accordion, Spinner, Modal, Tab, Tabs, ButtonGroup, ListGroup, ProgressBar } from 'react-bootstrap';
+import { Card, Container, Form, Button, Alert, Badge, Accordion, Spinner, Modal, Tab, Tabs, ButtonGroup, ListGroup, ProgressBar, Dropdown } from 'react-bootstrap';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import yaml from 'js-yaml';
@@ -61,7 +61,7 @@ const FileTreeView = ({ files }) => {
 
 const MultiAgentPanel = () => {
   const navigate = useNavigate();
-  
+
   // State for task and mode
   const [task, setTask] = useState('');
   const [mode, setMode] = useState('multi');
@@ -71,7 +71,7 @@ const MultiAgentPanel = () => {
   const [error, setError] = useState(null);
   const [executionProgress, setExecutionProgress] = useState(null);
   const [generatedFiles, setGeneratedFiles] = useState([]);
-  
+
   // New state for features
   const [templates, setTemplates] = useState([]);
   const [workflows, setWorkflows] = useState([]);
@@ -320,18 +320,18 @@ const MultiAgentPanel = () => {
       const response = await fetch('/api/multi-agent/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          task, 
-          mode, 
-          context: { executeWithADK } 
+        body: JSON.stringify({
+          task,
+          mode,
+          context: { executeWithADK }
         }),
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setResult(data);
-        
+
         // Build agent conversation log
         if (data.plan && data.result?.agentOutputs) {
           const conversation = [
@@ -346,12 +346,12 @@ const MultiAgentPanel = () => {
           ];
           setAgentConversation(conversation);
         }
-        
+
         // Auto-save workflow after successful execution
         if (autoSaveEnabled && mode === 'multi' && data.plan) {
           try {
             const autoSaveName = `${task.substring(0, 50)}${task.length > 50 ? '...' : ''} (${new Date().toLocaleString()})`;
-            
+
             const saveResponse = await fetch('/api/workflows', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -363,11 +363,11 @@ const MultiAgentPanel = () => {
                 task
               })
             });
-            
+
             const saveData = await saveResponse.json();
             if (saveData.success) {
               setCurrentWorkflowId(saveData.id);
-              
+
               // Update with execution results
               await fetch(`/api/workflows/${saveData.id}`, {
                 method: 'PUT',
@@ -379,14 +379,14 @@ const MultiAgentPanel = () => {
                   agentOutputs: data.result?.agentOutputs
                 })
               });
-              
+
               console.log('✅ Workflow auto-saved:', saveData.id);
             }
           } catch (autoSaveErr) {
             console.error('Auto-save failed:', autoSaveErr);
           }
         }
-        
+
         // If files were created, fetch the file list
         if (data.mode === 'multi-agent-with-execution') {
           setExecutionProgress('📂 Phase 3: Loading generated files...');
@@ -398,7 +398,7 @@ const MultiAgentPanel = () => {
             console.error('Failed to fetch files:', err);
           }
         }
-        
+
         setExecutionProgress(null);
       } else {
         setError(data.error || 'Request failed');
@@ -419,68 +419,112 @@ const MultiAgentPanel = () => {
   ];
 
   return (
-    <Container className="mt-4 mb-5" style={{maxWidth: '1200px', height: 'auto', overflowY: 'auto'}}>
-      <div className="text-center mb-4">
-        <h2>🎭 Multi-Agent Collaboration System</h2>
-        <p className="text-muted">Harness the power of specialist AI agents working together</p>
+    <Container className="mt-4 mb-5" style={{ maxWidth: '1200px', height: 'auto', overflowY: 'auto' }}>
+      <div className="text-center mb-5">
+        <h2 className="display-5 fw-bold" style={{
+          background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          textShadow: '0 0 30px rgba(139, 92, 246, 0.3)'
+        }}>
+          🎭 Multi-Agent Collaboration System
+        </h2>
+        <p className="lead text-light opacity-75">Harness the power of specialist AI agents working together</p>
       </div>
 
       {/* Feature Toolbar */}
-      <Card className="mb-3">
-        <Card.Body>
-          <div className="d-flex flex-wrap gap-2 justify-content-center">
-            <Button variant="outline-secondary" size="sm" onClick={() => navigate('/')}>
-              ⬅️ Back to Chat
+      <Card className="mb-4 border-0" style={{
+        background: 'rgba(30, 41, 59, 0.4)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(148, 163, 184, 0.1)',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+      }}>
+        <Card.Body className="p-4">
+          <div className="d-flex flex-wrap gap-3 justify-content-center align-items-center">
+            <Button variant="primary" className="d-flex align-items-center gap-2" onClick={() => setShowTemplateModal(true)} style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', border: 'none' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>library_books</span> Templates
             </Button>
-            <Button variant="outline-info" size="sm" onClick={() => navigate('/dashboard')}>
-              📊 Dashboard
+
+            <Button variant="success" className="d-flex align-items-center gap-2" onClick={() => setShowWorkflowModal(true)} style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>folder_open</span> Load
             </Button>
-            <Button variant="primary" size="sm" onClick={() => setShowTemplateModal(true)}>📚 Template Library</Button>
-            <Button variant="success" size="sm" onClick={() => setShowWorkflowModal(true)}>💾 Load Workflow</Button>
-            <Button variant="info" size="sm" onClick={() => setShowSaveModal(true)} disabled={!task}>💾 Save Workflow</Button>
-            <Button variant="warning" size="sm" onClick={() => setShowImportModal(true)}>📤 Import Workflow</Button>
+
+            <Button variant="info" className="d-flex align-items-center gap-2 text-white" onClick={() => setShowSaveModal(true)} disabled={!task} style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', border: 'none' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>save</span> Save
+            </Button>
+
+            <div className="vr bg-secondary opacity-25 mx-2"></div>
+
+            <Dropdown as={ButtonGroup}>
+              <Dropdown.Toggle variant="dark" className="d-flex align-items-center gap-2" style={{ background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(148, 163, 184, 0.2)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>build</span> Tools
+              </Dropdown.Toggle>
+              <Dropdown.Menu className="shadow-lg border-0" style={{ background: 'rgba(30, 41, 59, 0.95)', backdropFilter: 'blur(12px)' }}>
+                <Dropdown.Item onClick={() => setShowImportModal(true)} className="text-light hover-bg-primary">
+                  <span className="material-symbols-outlined me-2 align-middle">upload</span> Import Workflow
+                </Dropdown.Item>
+                <Dropdown.Item onClick={checkGitStatus} className="text-light hover-bg-primary">
+                  <span className="material-symbols-outlined me-2 align-middle">source</span> Git Status
+                </Dropdown.Item>
+                <Dropdown.Item onClick={seedDatabase} className="text-light hover-bg-primary">
+                  <span className="material-symbols-outlined me-2 align-middle">database</span> Seed Database
+                </Dropdown.Item>
+                <Dropdown.Divider className="border-secondary opacity-25" />
+                <Dropdown.Item onClick={() => setShowPerformanceDashboard(!showPerformanceDashboard)} className="text-light hover-bg-primary">
+                  <span className="material-symbols-outlined me-2 align-middle">monitoring</span> Analytics
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+
             {currentWorkflowId && (
-              <>
-                <Button variant="secondary" size="sm" onClick={() => exportWorkflow(currentWorkflowId, 'json')}>📥 Export JSON</Button>
-                <Button variant="secondary" size="sm" onClick={() => exportWorkflow(currentWorkflowId, 'yaml')}>📥 Export YAML</Button>
-              </>
+              <Dropdown as={ButtonGroup}>
+                <Dropdown.Toggle variant="outline-secondary" className="d-flex align-items-center gap-2">
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>download</span> Export
+                </Dropdown.Toggle>
+                <Dropdown.Menu className="shadow-lg border-0" style={{ background: 'rgba(30, 41, 59, 0.95)', backdropFilter: 'blur(12px)' }}>
+                  <Dropdown.Item onClick={() => exportWorkflow(currentWorkflowId, 'json')} className="text-light">JSON Format</Dropdown.Item>
+                  <Dropdown.Item onClick={() => exportWorkflow(currentWorkflowId, 'yaml')} className="text-light">YAML Format</Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
             )}
-            <Button variant="dark" size="sm" onClick={checkGitStatus}>🔄 Git Status</Button>
+
             {gitStatus?.hasChanges && (
-              <Button variant="success" size="sm" onClick={() => commitToGit()}>✅ Commit Changes</Button>
+              <Button variant="success" size="sm" onClick={() => commitToGit()}>Commit Changes</Button>
             )}
-            <Button variant="danger" size="sm" onClick={() => runTests()} disabled={!currentWorkflowId}>🧪 Run Tests</Button>
-            <Button variant="outline-primary" size="sm" onClick={seedDatabase}>🌱 Seed Database</Button>
-            <Button 
-              variant={showPerformanceDashboard ? "primary" : "outline-secondary"} 
-              size="sm" 
-              onClick={() => setShowPerformanceDashboard(!showPerformanceDashboard)}
-            >
-              📊 {showPerformanceDashboard ? 'Hide' : 'Show'} Analytics
+
+            <Button variant="danger" className="d-flex align-items-center gap-2" onClick={() => runTests()} disabled={!currentWorkflowId} style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', border: 'none' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>science</span> Test
             </Button>
           </div>
           {gitStatus && (
-            <Alert variant={gitStatus.hasChanges ? 'warning' : 'success'} className="mt-2 mb-0">
-              <small><strong>Git:</strong> {gitStatus.hasChanges ? `${gitStatus.changes.length} uncommitted change(s)` : 'Working directory clean'}</small>
+            <Alert variant={gitStatus.hasChanges ? 'warning' : 'success'} className="mt-3 mb-0" style={{ background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: gitStatus.hasChanges ? '#fbbf24' : '#34d399' }}>
+              <small><strong>Git Status:</strong> {gitStatus.hasChanges ? `${gitStatus.changes.length} uncommitted change(s)` : 'Working directory clean'}</small>
             </Alert>
           )}
           {testResults && (
-            <Alert variant={testResults.success ? 'success' : 'danger'} className="mt-2 mb-0">
+            <Alert variant={testResults.success ? 'success' : 'danger'} className="mt-3 mb-0">
               <small><strong>Tests:</strong> {testResults.status} ({testResults.duration}ms)</small>
             </Alert>
           )}
         </Card.Body>
       </Card>
-      
+
       {/* Task Input Card */}
-      <Card className="mb-4 shadow">
-        <Card.Header className="bg-primary text-white">
-          <strong>📝 Task Input</strong>
+      <Card className="mb-4 border-0" style={{
+        background: 'rgba(30, 41, 59, 0.4)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(148, 163, 184, 0.1)',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+      }}>
+        <Card.Header className="border-bottom border-secondary border-opacity-25 bg-transparent py-3">
+          <strong className="text-light d-flex align-items-center gap-2">
+            <span className="material-symbols-outlined text-primary">edit_note</span> Task Input
+          </strong>
         </Card.Header>
-        <Card.Body>
+        <Card.Body className="p-4">
           <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label>Development Task</Form.Label>
+            <Form.Group className="mb-4">
+              <Form.Label className="text-light opacity-75">Development Task</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={4}
@@ -488,66 +532,77 @@ const MultiAgentPanel = () => {
                 onChange={(e) => setTask(e.target.value)}
                 placeholder="Describe your development task..."
                 required
+                style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  color: '#f8fafc',
+                  resize: 'none'
+                }}
+                className="shadow-none focus-ring"
               />
               <Form.Text className="text-muted">
                 The orchestrator will analyze and assign to specialist agents.
               </Form.Text>
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Execution Mode</Form.Label>
-              <div>
+            <Form.Group className="mb-4">
+              <Form.Label className="text-light opacity-75">Execution Mode</Form.Label>
+              <div className="d-flex gap-4">
                 <Form.Check
                   inline
                   type="radio"
-                  label="🎭 Multi-Agent"
+                  label={<span className="text-light">🎭 Multi-Agent</span>}
                   value="multi"
                   checked={mode === 'multi'}
                   onChange={(e) => setMode(e.target.value)}
+                  id="mode-multi"
                 />
                 <Form.Check
                   inline
                   type="radio"
-                  label="🤖 Single Agent"
+                  label={<span className="text-light">🤖 Single Agent</span>}
                   value="single"
                   checked={mode === 'single'}
                   onChange={(e) => setMode(e.target.value)}
+                  id="mode-single"
                 />
               </div>
             </Form.Group>
 
             {mode === 'multi' && (
-              <>
+              <div className="p-3 rounded mb-4" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
                 <Form.Group className="mb-3">
                   <Form.Check
                     type="checkbox"
-                    label="📦 Execute with ADK (Create actual files in workspace)"
+                    label={<span className="text-light">📦 Execute with ADK (Create actual files in workspace)</span>}
                     checked={executeWithADK}
                     onChange={(e) => setExecuteWithADK(e.target.checked)}
+                    id="execute-adk"
                   />
-                  <Form.Text className="text-muted">
-                    {executeWithADK 
+                  <Form.Text className="text-muted d-block ms-4">
+                    {executeWithADK
                       ? '⚠️ Will create files in /generate folder after planning'
                       : 'Only show plan and code snippets (no files created)'}
                   </Form.Text>
                 </Form.Group>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-0">
                   <Form.Check
                     type="checkbox"
-                    label="💾 Auto-save workflow after execution"
+                    label={<span className="text-light">💾 Auto-save workflow after execution</span>}
                     checked={autoSaveEnabled}
                     onChange={(e) => setAutoSaveEnabled(e.target.checked)}
+                    id="auto-save"
                   />
-                  <Form.Text className="text-muted">
-                    {autoSaveEnabled 
+                  <Form.Text className="text-muted d-block ms-4">
+                    {autoSaveEnabled
                       ? '✅ Workflows will be automatically saved to history'
                       : 'Manual save only'}
                   </Form.Text>
                 </Form.Group>
-              </>
+              </div>
             )}
 
-            <div className="mb-3">
+            <div className="mb-4">
               <small className="text-muted d-block mb-2">Quick examples:</small>
               <div className="d-flex flex-wrap gap-2">
                 {exampleTasks.map((example, i) => (
@@ -556,6 +611,7 @@ const MultiAgentPanel = () => {
                     variant="outline-secondary"
                     size="sm"
                     onClick={() => setTask(example)}
+                    style={{ borderColor: 'rgba(148, 163, 184, 0.2)', color: '#cbd5e1' }}
                   >
                     {example}
                   </Button>
@@ -563,7 +619,7 @@ const MultiAgentPanel = () => {
               </div>
             </div>
 
-            <Button type="submit" disabled={loading} size="lg">
+            <Button type="submit" disabled={loading} size="lg" className="w-100 py-3 fw-bold" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', border: 'none', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}>
               {loading ? '⏳ Processing...' : '🚀 Execute Task'}
             </Button>
           </Form>
@@ -572,36 +628,38 @@ const MultiAgentPanel = () => {
 
       {/* Error Display */}
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError(null)}>
+        <Alert variant="danger" dismissible onClose={() => setError(null)} className="border-0 shadow-lg" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#fca5a5' }}>
           <strong>⚠️ Error:</strong> {error}
         </Alert>
       )}
 
       {/* Loading State */}
       {loading && (
-        <Card className="text-center mt-4">
+        <Card className="text-center mt-4 border-0" style={{ background: 'transparent' }}>
           <Card.Body>
-            <Spinner animation="border" variant="primary" className="mb-3" />
-            <h5>Processing Your Task</h5>
+            <div className="mb-4">
+              <Spinner animation="border" variant="primary" style={{ width: '3rem', height: '3rem' }} />
+            </div>
+            <h5 className="text-light">Processing Your Task</h5>
             <p className="text-muted">
               {executionProgress || (
-                mode === 'multi' 
+                mode === 'multi'
                   ? 'Orchestrator is coordinating specialist agents...'
                   : 'Agent is processing your request...'
               )}
             </p>
             {executeWithADK && (
-              <div className="mt-3">
-                <Badge bg={executionProgress?.includes('Phase 1') ? 'info' : 'success'}>
-                  Phase 1: Multi-Agent Planning
+              <div className="mt-4 d-flex justify-content-center align-items-center gap-3">
+                <Badge bg={executionProgress?.includes('Phase 1') ? 'primary' : 'secondary'} className="p-2 px-3 rounded-pill">
+                  Phase 1: Planning
                 </Badge>
-                <span className="mx-2">→</span>
-                <Badge bg={executionProgress?.includes('Phase 2') ? 'info' : executionProgress?.includes('Phase 3') ? 'success' : 'secondary'}>
-                  Phase 2: ADK Execution
+                <span className="text-muted">→</span>
+                <Badge bg={executionProgress?.includes('Phase 2') ? 'primary' : executionProgress?.includes('Phase 3') ? 'success' : 'secondary'} className="p-2 px-3 rounded-pill">
+                  Phase 2: Execution
                 </Badge>
-                <span className="mx-2">→</span>
-                <Badge bg={executionProgress?.includes('Phase 3') ? 'info' : 'secondary'}>
-                  Phase 3: File Creation
+                <span className="text-muted">→</span>
+                <Badge bg={executionProgress?.includes('Phase 3') ? 'primary' : 'secondary'} className="p-2 px-3 rounded-pill">
+                  Phase 3: Generation
                 </Badge>
               </div>
             )}
@@ -612,39 +670,50 @@ const MultiAgentPanel = () => {
       {/* ADK Execution Result */}
       {result && result.mode === 'multi-agent-with-execution' && (
         <>
-          <Alert variant="success" className="mb-4">
-            <Alert.Heading>✅ Files Created Successfully!</Alert.Heading>
+          <Alert variant="success" className="mb-4 border-0 shadow-lg" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#6ee7b7' }}>
+            <Alert.Heading className="d-flex align-items-center gap-2">
+              <span className="material-symbols-outlined">check_circle</span> Files Created Successfully!
+            </Alert.Heading>
             <p>{result.message}</p>
             <div className="d-flex gap-2 mt-3 flex-wrap">
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 size="sm"
-                href="/workshop" 
+                href="/workshop"
                 target="_blank"
+                className="d-flex align-items-center gap-2"
               >
-                📁 View Files in Browser
+                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>folder</span> View Files
               </Button>
-              <Button 
-                variant="outline-secondary" 
+              <Button
+                variant="outline-light"
                 size="sm"
                 onClick={() => {
-                  // Link to view generated artifacts
                   window.open('/api/generate', '_blank');
                 }}
+                className="d-flex align-items-center gap-2"
               >
-                🗂️ Browse Artifacts API
+                <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>api</span> Browse API
               </Button>
             </div>
           </Alert>
 
           {/* File Tree Display */}
           {generatedFiles.length > 0 && (
-            <Card className="mb-4">
-              <Card.Header className="bg-info text-white">
-                <strong>📂 Generated Project Structure ({generatedFiles.length} files)</strong>
+            <Card className="mb-4 border-0" style={{
+              background: 'rgba(30, 41, 59, 0.4)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(148, 163, 184, 0.1)'
+            }}>
+              <Card.Header className="bg-transparent border-bottom border-secondary border-opacity-25 py-3">
+                <strong className="text-info d-flex align-items-center gap-2">
+                  <span className="material-symbols-outlined">folder_zip</span> Generated Project Structure ({generatedFiles.length} files)
+                </strong>
               </Card.Header>
-              <Card.Body>
-                <FileTreeView files={generatedFiles} />
+              <Card.Body className="p-0">
+                <div className="p-3" style={{ background: 'rgba(15, 23, 42, 0.3)' }}>
+                  <FileTreeView files={generatedFiles} />
+                </div>
               </Card.Body>
             </Card>
           )}
@@ -653,92 +722,126 @@ const MultiAgentPanel = () => {
 
       {/* Results Display */}
       {result && mode === 'multi' && result.plan && (
-        <Card className="shadow mb-4">
-          <Card.Header className="bg-success text-white">
-            <strong>✅ Task Completed</strong>
-            <Badge bg="light" text="dark" className="ms-2">
-              {result.executionTime}ms
+        <Card className="shadow-lg mb-4 border-0" style={{
+          background: 'rgba(30, 41, 59, 0.4)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(148, 163, 184, 0.1)',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+        }}>
+          <Card.Header className="bg-transparent border-bottom border-secondary border-opacity-25 py-3 d-flex justify-content-between align-items-center">
+            <strong className="text-success d-flex align-items-center gap-2">
+              <span className="material-symbols-outlined">check_circle</span> Task Completed
+            </strong>
+            <Badge bg="light" text="dark" className="d-flex align-items-center gap-1 px-3 py-2 rounded-pill">
+              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>timer</span> {result.executionTime}ms
             </Badge>
           </Card.Header>
-          <Card.Body style={{maxHeight: 'none', overflowY: 'visible'}}>
+          <Card.Body className="p-4" style={{ maxHeight: 'none', overflowY: 'visible' }}>
             {/* Agent Conversation Log */}
             {agentConversation.length > 0 && (
-              <div className="mb-4">
-                <h5>🗣️ Agent Collaboration Timeline</h5>
-                <Card className="mb-3">
-                  <Card.Body>
-                    {agentConversation.map((msg, i) => (
-                      <div key={i} className="d-flex align-items-start mb-3">
-                        <div className="me-3" style={{ minWidth: '120px' }}>
-                          <Badge 
-                            bg={msg.agent === 'Orchestrator' ? 'primary' : 'secondary'}
-                            className="w-100"
-                          >
-                            {msg.agent}
-                          </Badge>
-                          {msg.executionTime && (
-                            <div className="text-muted" style={{ fontSize: '0.75em' }}>
-                              {msg.executionTime}ms
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="bg-light p-2 rounded">
-                            {msg.message}
+              <div className="mb-5">
+                <h5 className="text-light mb-3 d-flex align-items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">forum</span> Agent Collaboration Timeline
+                </h5>
+                <div className="p-4 rounded-3" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                  {agentConversation.map((msg, i) => (
+                    <div key={i} className="d-flex align-items-start mb-4">
+                      <div className="me-3 d-flex flex-column align-items-center" style={{ minWidth: '120px' }}>
+                        <Badge
+                          bg={msg.agent === 'Orchestrator' ? 'primary' : 'secondary'}
+                          className="w-100 py-2 mb-1"
+                          style={{ background: msg.agent === 'Orchestrator' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'rgba(71, 85, 105, 0.8)' }}
+                        >
+                          {msg.agent}
+                        </Badge>
+                        {msg.executionTime && (
+                          <div className="text-muted small font-monospace">
+                            {msg.executionTime}ms
                           </div>
-                          <small className="text-muted">
-                            {msg.timestamp.toLocaleTimeString()}
-                          </small>
-                        </div>
+                        )}
                       </div>
-                    ))}
-                  </Card.Body>
-                </Card>
+                      <div className="flex-grow-1 position-relative">
+                        <div className="p-3 rounded-3 position-relative" style={{
+                          background: msg.agent === 'Orchestrator' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(30, 41, 59, 0.6)',
+                          border: `1px solid ${msg.agent === 'Orchestrator' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(148, 163, 184, 0.1)'}`
+                        }}>
+                          <div className="text-light opacity-90">{msg.message}</div>
+                        </div>
+                        <small className="text-muted mt-1 d-block text-end">
+                          {msg.timestamp.toLocaleTimeString()}
+                        </small>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
             {/* Execution Plan */}
-            <div className="mb-4">
-              <h5>📋 Execution Plan</h5>
-              <Card className="mb-3" style={{ backgroundColor: '#ffffff', border: '1px solid #dee2e6' }}>
-                <Card.Body style={{ color: '#212529' }}>
-                  <p className="mb-2"><strong>Analysis:</strong> {result.plan.analysis}</p>
-                  <p className="mb-2"><strong>Complexity:</strong> <Badge bg="info">{result.plan.complexity}</Badge></p>
-                  <p className="mb-0"><strong>Agents:</strong> {result.agentsUsed.map((a, i) => (
-                    <Badge key={i} bg="primary" className="ms-1">{a}</Badge>
-                  ))}</p>
+            <div className="mb-5">
+              <h5 className="text-light mb-3 d-flex align-items-center gap-2">
+                <span className="material-symbols-outlined text-info">assignment</span> Execution Plan
+              </h5>
+              <Card className="border-0" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                <Card.Body className="text-light">
+                  <div className="mb-3">
+                    <strong className="text-info d-block mb-2">Analysis</strong>
+                    <p className="opacity-75">{result.plan.analysis}</p>
+                  </div>
+                  <div className="d-flex gap-4">
+                    <div>
+                      <strong className="text-info d-block mb-2">Complexity</strong>
+                      <Badge bg="info" className="px-3 py-2 rounded-pill">{result.plan.complexity}</Badge>
+                    </div>
+                    <div>
+                      <strong className="text-info d-block mb-2">Agents Involved</strong>
+                      <div className="d-flex gap-2">
+                        {result.agentsUsed.map((a, i) => (
+                          <Badge key={i} bg="primary" className="px-3 py-2 rounded-pill" style={{ background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.4)', color: '#93c5fd' }}>{a}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </Card.Body>
               </Card>
             </div>
 
             {/* Agent Outputs */}
-            <div className="mb-4">
-              <h5>🎯 Agent Outputs</h5>
-              <Accordion className="mb-3">
-              {result.result.agentOutputs.map((output, i) => (
-                <Accordion.Item key={i} eventKey={i.toString()}>
-                  <Accordion.Header>
-                    <strong>{output.agentName}</strong>
-                    <Badge bg="info" className="ms-2">{output.executionTime}ms</Badge>
-                  </Accordion.Header>
-                  <Accordion.Body>
-                    <p className="mb-3"><strong>Task:</strong> {output.task}</p>
-                    <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                      <SyntaxHighlighter language="markdown" style={vscDarkPlus} customStyle={{ borderRadius: '8px', fontSize: '0.85em' }}>
-                        {output.output}
-                      </SyntaxHighlighter>
-                    </div>
-                  </Accordion.Body>
-                </Accordion.Item>
-              ))}
+            <div className="mb-5">
+              <h5 className="text-light mb-3 d-flex align-items-center gap-2">
+                <span className="material-symbols-outlined text-warning">output</span> Agent Outputs
+              </h5>
+              <Accordion className="custom-accordion">
+                {result.result.agentOutputs.map((output, i) => (
+                  <Accordion.Item key={i} eventKey={i.toString()} className="mb-3 border-0 bg-transparent">
+                    <Accordion.Header>
+                      <div className="d-flex align-items-center gap-3 w-100">
+                        <strong>{output.agentName}</strong>
+                        <Badge bg="info" className="ms-auto me-3">{output.executionTime}ms</Badge>
+                      </div>
+                    </Accordion.Header>
+                    <Accordion.Body className="p-0 mt-2">
+                      <div className="p-3 rounded-bottom" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                        <p className="mb-3 text-light"><strong className="text-info">Task:</strong> {output.task}</p>
+                        <div style={{ maxHeight: '500px', overflowY: 'auto', borderRadius: '8px', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                          <SyntaxHighlighter language="markdown" style={vscDarkPlus} customStyle={{ margin: 0, borderRadius: '8px', fontSize: '0.85em', background: '#0f172a' }}>
+                            {output.output}
+                          </SyntaxHighlighter>
+                        </div>
+                      </div>
+                    </Accordion.Body>
+                  </Accordion.Item>
+                ))}
               </Accordion>
             </div>
 
             {/* Final Summary */}
             <div className="mb-4">
-              <h5>📊 Final Summary</h5>
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                <SyntaxHighlighter language="sql" style={vscDarkPlus} customStyle={{ borderRadius: '8px', fontSize: '0.85em' }}>
+              <h5 className="text-light mb-3 d-flex align-items-center gap-2">
+                <span className="material-symbols-outlined text-success">summarize</span> Final Summary
+              </h5>
+              <div style={{ maxHeight: '400px', overflowY: 'auto', borderRadius: '8px', border: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                <SyntaxHighlighter language="markdown" style={vscDarkPlus} customStyle={{ margin: 0, borderRadius: '8px', fontSize: '0.85em', background: '#0f172a' }}>
                   {result.result.summary}
                 </SyntaxHighlighter>
               </div>
