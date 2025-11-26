@@ -4,7 +4,7 @@
 
 1. Clone the git Repo using ```git clone https://github.com/JayJoshi4520/DATA298B-FullStack.git```
 2. ```cd DATA298-FullStack```
-3. Create below .env file, NOTE: for testing only change the API KEY of LLM_API_KEY
+3. Create below .env file inside ```/components/api```, NOTE: for testing only change the API KEY of LLM_API_KEY
 ```
 # ======================
 # LLM PROVIDER CONFIGURATION
@@ -37,26 +37,24 @@ DEV_MODE=true
 ENABLE_MOCK_AI=false
 DEBUG=true
 
-
 ```
-4. Run docker command ``````
+Create below .env file inside ```/components/api```
+```
+VITE_FIREBASE_API_KEY=""
+VITE_FIREBASE_AUTH_DOMAIN=""
+VITE_FIREBASE_PROJECT_ID="" 
+VITE_FIREBASE_STORAGE_BUCKET=""
+VITE_FIREBASE_MESSAGING_SENDER_ID=""
+VITE_FIREBASE_APP_ID=""
+```
+
+4. Run docker command ```docker compose build && docker compose up```
 
 Once the containers have started, open your browser to http://localhost:5173 and you’ll see the Workspace!,
 
 To Test backend API use http://localhost:3030 using Postman.
 
 Click the **Load VS Code here** button to display the VS Code IDE in the right side panel.
-
-
-## Development
-
-To work on the Labspace infrastructure, you can utilize the `compose.yaml` file. Make sure to enable Compose Watch mode with the `--watch` flag.
-
-```console
-docker compose up --build
-```
-
-After it starts, open the workspace at http://localhost:5173.
 
 
 ## Known limitations
