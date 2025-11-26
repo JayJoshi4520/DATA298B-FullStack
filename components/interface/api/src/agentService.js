@@ -24,6 +24,75 @@ export class AgentService {
   }
 
   /**
+   * Detect if user is requesting refinement vs new project
+   */
+  isRefinementRequest(task, session) {
+    const refinementKeywords = ['fix', 'bug', 'error', 'change', 'update', 'modify', 'improve', 'refine'];
+    const lowerTask = task.toLowerCase();
+    const hasKeyword = refinementKeywords.some(kw => lowerTask.includes(kw));
+
+    if (!hasKeyword) return false;
+
+    const lastProject = session?.metadata?.lastProject;
+    if (!lastProject) return false;
+
+    // Check if project was created recently (within last hour)
+    const createdAt = new Date(lastProject.createdAt);
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    return createdAt > hourAgo;
+  }
+
+  /**
+   * Load project files for refinement context
+   */
+  loadProjectContext(projectPath) {
+    const keyFiles = ['package.json', 'requirements.txt', 'README.md', 'docker-compose.yml'];
+    const context = {};
+
+    for (const file of keyFiles) {
+      const filePath = path.join(projectPath, file);
+      try {
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf8');
+          // Limit file size
+          context[file] = content.length > 5000 ? content.substring(0, 5000) + '\n...(truncated)' : content;
+        }
+      } catch (err) {
+        console.warn(`Could not read ${file}:`, err.message);
+      }
+    }
+
+    return context;
+  }
+
+  /**
+   * Build enhanced prompt for refinement
+   */
+  buildRefinementPrompt(task, projectContext) {
+    const filesContext = Object.entries(projectContext)
+      .map(([file, content]) => `--- ${file} ---\n${content}`)
+      .join('\n\n');
+
+    return `You are refining an existing project based on user feedback.
+
+CURRENT PROJECT FILES:
+${filesContext}
+
+USER REQUEST:
+${task}
+
+INSTRUCTIONS:
+1. Analyze the user's feedback and any errors mentioned
+2. Make MINIMAL changes to fix the issue
+3. Only modify necessary files  
+4. Preserve all working code
+5. Output the fixed/updated files
+
+Focus on targeted fixes rather than complete rewrites.`;
+  }
+
+
+  /**
    * Stream ADK pipeline execution via SSE
    * @param {Response} res - Express response object
    * @param {string} task - The task to execute
@@ -31,7 +100,7 @@ export class AgentService {
    * @returns {Function} Cleanup function
    */
   async runADKPipelineStream(res, task, options = {}) {
-    let { userId, sessionId, projectId } = options || {};
+    let { userId, sessionId, projectId, session } = options || {};
     userId = userId || "adk-user";
     sessionId = sessionId || "adk-session";
     projectId = projectId || "adk-project";
@@ -43,12 +112,33 @@ export class AgentService {
 
     const TARGET_DIR = PROJECT_DIR;
 
+    // Check if this is a refinement request
+    const isRefinement = this.isRefinementRequest(task, session);
+    let enhancedTask = task;
+
+    if (isRefinement) {
+      const projectPath = session.metadata.lastProject.path;
+      console.log(`🔧 Refinement detected for project: ${projectPath}`);
+
+      // Load project files for context
+      const projectContext = this.loadProjectContext(projectPath);
+      const fileCount = Object.keys(projectContext).length;
+      console.log(`📁 Loaded ${fileCount} files for refinement context`);
+
+      // Build enhanced prompt with project files
+      enhancedTask = this.buildRefinementPrompt(task, projectContext);
+
+      // Emit refinement event to frontend
+      res.write(`event: refinement.detected\n`);
+      res.write(`data: ${JSON.stringify({ projectPath, filesLoaded: fileCount })}\n\n`);
+    }
+
     // Save initial turn
     await this.memory.saveTurn({ userId, sessionId, projectId, userMsg: task, assistantMsg: null, usage: null });
     const ctx = await this.memory.getChatContext({ userId, sessionId, projectId, query: task, limit: LIMITS.MAX_CONTEXT_MESSAGES });
 
-    // Spawn Python process
-    const proc = spawn("python3", [scriptPath, task], {
+    // Spawn Python process with enhanced task
+    const proc = spawn("python3", [scriptPath, enhancedTask], {
       env: {
         ...process.env,
         TARGET_FOLDER_PATH: TARGET_DIR,

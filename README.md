@@ -215,3 +215,71 @@ The app should help users track income, expenses, and savings.
 
 Ensure all files contain working starter code and not placeholders.
 ```
+
+
+6. 
+```
+Create a full-stack ML application named "mnist_digit_classifier" under the target directory.  
+The backend must train a small neural network from scratch on the MNIST dataset and provide a prediction API.  
+The frontend lets users draw a digit and get predictions.
+
+**Backend (FastAPI + PyTorch):**
+- Folder `backend/` containing:
+  - `model.py` defining a VERY small neural network (2-layer MLP or tiny CNN)
+  - `train.py` training the model from scratch using MNIST (download via torchvision)
+  - `main.py` exposing:
+    - POST `/predict` endpoint accepting a base64 PNG and returning predicted digit
+    - GET `/train` endpoint that triggers training
+  - Automatically create `model.pth` after training
+  - `requirements.txt` including: fastapi, uvicorn, torch, torchvision, pillow, numpy
+  - `README.md` explaining training and usage
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios, react-canvas-draw)
+  - `public/index.html` titled “MNIST Classifier”
+  - `src/App.js` allowing users to:
+    - Draw a digit on canvas
+    - Send image to the backend
+    - Display predicted digit
+  - `src/App.css` with clean UI styling
+  - `README.md` for setup
+
+**Root Files:**
+- `.gitignore` ignoring node_modules, model files, __pycache__
+- `docker-compose.yml` exposing backend on 8000 and frontend on 3000
+
+All code must be complete and runnable on a CPU-only MacBook Air.
+```
+
+7.
+```
+Create a small ML full-stack project named "tiny_sentiment_app" under the target directory.  
+User can input sentences, the backend predicts sentiment using a tiny neural network you train from scratch.
+
+**Backend (Flask + PyTorch):**
+- In `backend/` include:
+  - `prepare_data.py` preprocessing a tiny CSV dataset (e.g., IMDB mini)
+  - `model.py` defining a tiny LSTM or bag-of-words classifier
+  - `train.py` training model on CPU with small dataset
+  - `app.py` exposing:
+    - `/predict` endpoint for sentiment prediction
+    - `/train` endpoint to retrain model
+  - `requirements.txt` with flask, torch, numpy, pandas
+  - `README.md` documenting training steps
+
+**Frontend (Vue.js):**
+- In `frontend/` include:
+  - `package.json` (vue, axios)
+  - `src/App.vue` with:
+    - Text input for sentiment analysis
+    - Output box showing label (positive/negative)
+  - `src/main.js`
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Ensure the dataset is tiny and training is fast (<10 seconds).
+```

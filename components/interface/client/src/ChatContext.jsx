@@ -20,6 +20,7 @@ export const ChatContextProvider = ({ children }) => {
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [sessionName, setSessionName] = useState("New Chat");
+  const [projectPath, setProjectPath] = useState(null); // For ADK refinement
   const autoSaveTimeoutRef = useRef(null);
 
   // Load sessions from API on mount and when user changes
@@ -198,6 +199,12 @@ export const ChatContextProvider = ({ children }) => {
             const d = JSON.parse(e.data);
             const outputs = Array.isArray(d.outputs) ? d.outputs : [];
             const combined = outputs.join("\n\n");
+
+            // Store project path for refinement
+            if (d.projectPath) {
+              setProjectPath(d.projectPath);
+            }
+
             setMessages((prev) => [
               ...prev,
               { id: Date.now() + 1, role: "assistant", content: combined || "✅ ADK pipeline complete.", timestamp: new Date(), provider: "ADK" },
@@ -270,12 +277,16 @@ export const ChatContextProvider = ({ children }) => {
     try {
       // CRITICAL: Include userId from authenticated user
       const sessionData = {
-        userId: currentUser?.uid,  // Use real userId, fallback to anonymous
+        userId: currentUser?.uid,
         metadata: {
           chatName: sessionName,
           messages: messages,
           mode: mode,
           messageCount: messages.length,
+          lastProject: projectPath ? {
+            path: projectPath,
+            createdAt: new Date().toISOString()
+          } : undefined
         }
       };
 

@@ -242,6 +242,16 @@ app.get("/api/adk/stream", adkLimiter, async (req, res) => {
       projectId: req.query.projectId,
     };
 
+    // Fetch session for refinement detection
+    let session = null;
+    if (options.sessionId && agentService.memory.store.getSession) {
+      try {
+        session = await agentService.memory.store.getSession(options.sessionId);
+      } catch (err) {
+        console.warn('Could not fetch session:', err.message);
+      }
+    }
+
     // SSE headers
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -254,7 +264,7 @@ app.get("/api/adk/stream", adkLimiter, async (req, res) => {
       res.write(`data: {}\n\n`);
     }, TIMEOUTS.SSE_HEARTBEAT);
 
-    const cleanup = await agentService.runADKPipelineStream(res, task, options);
+    const cleanup = await agentService.runADKPipelineStream(res, task, { ...options, session });
 
     req.on("close", () => {
       clearInterval(hb);
