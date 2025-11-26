@@ -1,2 +1,0 @@
-
-Once the containers are running, you can access the web application by opening **http://localhost:3000** in your web browser.

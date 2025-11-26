@@ -1,4 +1,0 @@
-
-
-3.  **Follow the instructions in the generated `README.md` files** or the script's output to build and run the application using Docker Compose. A summary is:
-    

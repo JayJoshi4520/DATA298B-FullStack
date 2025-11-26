@@ -1,2 +1,0 @@
-
-- After the script finishes, follow the instructions printed in the console to `cd` into the `book_finder` directory and run `docker-compose up --build` to launch the application.

@@ -1,5 +1,0 @@
-```bash
-python3 /home/coder/project/output.py
-cd /home/coder/project/book_finder
-docker compose up --build
-```
