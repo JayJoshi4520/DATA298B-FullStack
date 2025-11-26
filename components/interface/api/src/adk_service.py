@@ -22,7 +22,7 @@ from typing import Any, Dict
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-LLM_MODEL = os.getenv("LLM_MODEL")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash-exp")  # Use Flash model for faster performance
 TARGET_FOLDER_PATH = os.getenv("TARGET_FOLDER_PATH", "/home/coder/project/")
 SCRIPT = os.path.join(TARGET_FOLDER_PATH, "output.py")
 
@@ -783,8 +783,8 @@ Be thorough and critical. If you find any issues, clearly explain what's wrong a
     code_improvement_loop = LoopAgent(
         name="CodeImprovementLoop",
         sub_agents=[code_reviewer_agent, code_refactorer_agent],
-        max_iterations=3,
-        description="Iteratively reviews and refactors code until approved or max iterations"
+        max_iterations=1,  # Reduced from 3 to 1 for faster execution
+        description="Reviews and refactors code once for quality assurance"
     )
 
 
@@ -913,8 +913,23 @@ Be thorough and critical. If you find any issues, clearly explain what's wrong a
             # If no code detected, include the whole output
             processed_outputs.append(output)
     
+    
+    # Emit pipeline completion event
     emit_event("pipeline.complete", {"message": "ADK pipeline completed successfully"})
-    return processed_outputs if processed_outputs else outputs
+    
+    # Emit final 'complete' event that frontend expects to close the stream
+    final_outputs = processed_outputs if processed_outputs else outputs
+    emit_event("complete", {
+        "outputs": final_outputs,
+        "projectPath": f"{TARGET_FOLDER_PATH}",
+        "status": "success"
+    })
+    
+    # CRITICAL: Also print to stdout for Node.js agentService to parse
+    # Node.js reads from stdout buffer to get final results
+    print(json.dumps(final_outputs), flush=True)
+    
+    return final_outputs
 
 
 def run_pipeline(user_message: str):
@@ -924,7 +939,5 @@ def run_pipeline(user_message: str):
 
 if __name__ == "__main__":
     msg = sys.argv[1] if len(sys.argv) > 1 else "Help me create something new"
-    result = run_pipeline(msg)
-    # Ensure clean JSON array string to stdout only
-    sys.stdout.write(json.dumps(result))
-    sys.stdout.flush()
+    run_pipeline(msg)
+    # Results already printed to stdout in run_pipeline_async (line 930)

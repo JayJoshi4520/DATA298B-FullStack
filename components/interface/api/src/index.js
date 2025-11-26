@@ -8,6 +8,8 @@ import { AgentService } from "./agentService.js";
 import { ChatService } from "./chatService.js";
 import { MultiAgentOrchestrator } from "./agents/orchestrator.js";
 import { apiLimiter, adkLimiter, chatLimiter } from "./middleware/rateLimit.js";
+import { ProjectAgent } from "./agents/projectAgent.js";
+import { verifyToken } from "./middleware/auth.js";
 import { PATHS, HTTP_STATUS, TIMEOUTS } from "./constants.js";
 import { getDatabaseHealth, closeDatabase } from "./db.js";
 import dotenv from 'dotenv'
@@ -18,6 +20,7 @@ const ARTIFACTS_DIR = path.resolve(process.cwd(), PATHS.ARTIFACTS_DIR);
 const workshopStore = new WorkshopStore();
 const agentService = new AgentService();
 const chatService = new ChatService();
+const projectAgent = new ProjectAgent();
 
 // Initialize Multi-Agent Orchestrator
 let multiAgentOrchestrator = null;
@@ -84,6 +87,7 @@ app.get("/api/providers", (req, res) => {
       current: providerInfo.current || "mock",
     });
   } catch (error) {
+    console.error("Error fetching providers:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -98,6 +102,22 @@ app.post("/api/providers/switch", async (req, res) => {
   }
 });
 
+
+app.post("/api/project/generate", verifyToken, async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "Prompt is required" });
+
+    // Use user ID from token
+    const userId = req.user.uid;
+
+    const result = await projectAgent.generateProject(prompt, userId);
+    res.json(result);
+  } catch (error) {
+    console.error("Project generation error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.post("/api/chat", chatLimiter, async (req, res) => {
   try {
@@ -343,8 +363,15 @@ app.get("/api/workspace/files", async (req, res) => {
 // -----------------------------
 // 📊 Memory Analytics Endpoint
 // -----------------------------
-app.get("/api/memory/stats", (req, res) => {
+app.get("/api/memory/stats", async (req, res) => {
   try {
+    // If using Firestore (or if method exists), use the service method
+    if (agentService.memory.store.getStats) {
+      const stats = await agentService.memory.getStats();
+      return res.json(stats);
+    }
+
+    // Fallback to SQLite raw queries (existing logic)
     const db = agentService.memory.store.db;
 
     // Get basic counts
@@ -422,10 +449,63 @@ app.get("/api/memory/stats", (req, res) => {
 // -----------------------------
 // 📤 Session Export Endpoint
 // -----------------------------
-app.get("/api/memory/export/:sessionId", (req, res) => {
+app.get("/api/memory/export/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const limit = parseInt(req.query.limit) || 1000;
+
+    // Use service abstraction
+    if (agentService.memory.store.getSessionDetails) {
+      const sessionInfo = await agentService.memory.getSessionDetails(sessionId);
+      if (!sessionInfo) return res.status(404).json({ error: "Session not found" });
+
+      const messages = await agentService.memory.getSessionMessages(sessionId, limit);
+      const toolRuns = await agentService.memory.getSessionToolRuns(sessionId);
+
+      // Calculate total tokens
+      const totalTokens = messages.reduce((sum, msg) => {
+        if (msg.token_usage_json) {
+          try {
+            const usage = JSON.parse(msg.token_usage_json);
+            return sum + (usage.total_tokens || 0);
+          } catch { return sum; }
+        }
+        return sum;
+      }, 0);
+
+      return res.json({
+        session: {
+          id: sessionInfo.id,
+          userId: sessionInfo.user_id,
+          projectId: sessionInfo.project_id,
+          createdAt: sessionInfo.created_at,
+          summary: sessionInfo.summary_text,
+          summaryUpdatedAt: sessionInfo.summary_updated_at,
+        },
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          createdAt: msg.created_at,
+          tokenUsage: msg.token_usage_json ? JSON.parse(msg.token_usage_json) : null,
+        })),
+        toolRuns: toolRuns.map(run => ({
+          name: run.name,
+          input: run.input_json ? JSON.parse(run.input_json) : null,
+          output: run.output_json ? JSON.parse(run.output_json) : null,
+          success: !!run.success,
+          createdAt: run.created_at,
+        })),
+        stats: {
+          messageCount: messages.length,
+          toolRunCount: toolRuns.length,
+          totalTokens,
+          successfulToolRuns: toolRuns.filter(r => r.success).length,
+        },
+        exportedAt: new Date().toISOString(),
+      });
+    }
+
+    // Fallback to SQLite raw queries
     const db = agentService.memory.store.db;
 
     // Get session info
@@ -509,10 +589,20 @@ app.get("/api/memory/export/:sessionId", (req, res) => {
 // -----------------------------
 // 🔍 Session List Endpoint
 // -----------------------------
-app.get("/api/memory/sessions", (req, res) => {
+app.get("/api/memory/sessions", async (req, res) => {
   try {
     const userId = req.query.userId;
     const limit = parseInt(req.query.limit) || 50;
+
+    if (agentService.memory.store.listSessions) {
+      const sessions = await agentService.memory.listSessions({ userId, limit });
+      return res.json({
+        sessions,
+        count: sessions.length,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const db = agentService.memory.store.db;
 
     let query = `
@@ -555,6 +645,89 @@ app.get("/api/memory/sessions", (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// -----------------------------
+// 📝 Create/Update Session Endpoint
+// -----------------------------
+app.post("/api/memory/sessions", async (req, res) => {
+  try {
+    const { sessionId, metadata, userId } = req.body;
+    const id = sessionId || `session-${Date.now()}`;
+    const user = userId || "anonymous";
+
+    if (agentService.memory.store.updateSession) {
+      await agentService.memory.store.updateSession(id, {
+        id,
+        userId: user,
+        metadata: metadata || {},
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      });
+
+      return res.json({ id, success: true });
+    }
+
+    // Fallback for SQLite
+    res.status(501).json({ error: "Not implemented for current storage backend" });
+  } catch (error) {
+    console.error("Session create error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// -----------------------------
+// 📝 Update Session Endpoint
+// -----------------------------
+app.put("/api/memory/sessions/:sessionId", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { metadata, userId } = req.body;
+
+    if (agentService.memory.store.updateSession) {
+      const updateData = {
+        metadata: metadata || {},
+        updatedAt: new Date().toISOString()
+      };
+
+      // CRITICAL: Include userId if provided (for migration)
+      if (userId !== undefined) {
+        updateData.userId = userId;
+      }
+
+      await agentService.memory.store.updateSession(sessionId, updateData);
+
+      return res.json({ success: true });
+    }
+
+    // Fallback for SQLite
+    res.status(501).json({ error: "Not implemented for current storage backend" });
+  } catch (error) {
+    console.error("Session update error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// -----------------------------
+// 🗑️ Delete Session Endpoint
+// -----------------------------
+app.delete("/api/memory/sessions/:sessionId", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (agentService.memory.store.db && agentService.memory.store.db.collection) {
+      // Firestore
+      await agentService.memory.store.db.collection('sessions').doc(sessionId).delete();
+      return res.json({ success: true });
+    }
+
+    // Fallback for SQLite
+    res.status(501).json({ error: "Not implemented for current storage backend" });
+  } catch (error) {
+    console.error("Session delete error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // -----------------------------
 // 🧠 Semantic Search Endpoint
@@ -602,6 +775,54 @@ app.get("/api/memory/export/:sessionId/file", async (req, res) => {
     const { sessionId } = req.params;
     const format = req.query.format || 'json'; // json or txt
     const limit = parseInt(req.query.limit) || 1000;
+
+    // Use service abstraction
+    if (agentService.memory.store.getSessionDetails) {
+      const sessionInfo = await agentService.memory.getSessionDetails(sessionId);
+      if (!sessionInfo) return res.status(404).json({ error: "Session not found" });
+
+      const messages = await agentService.memory.getSessionMessages(sessionId, limit);
+
+      if (format === 'txt') {
+        let content = `Session: ${sessionInfo.id}\n`;
+        content += `User: ${sessionInfo.user_id || 'N/A'}\n`;
+        content += `Created: ${sessionInfo.created_at}\n`;
+        content += `Messages: ${messages.length}\n`;
+        content += `\n${'='.repeat(80)}\n\n`;
+
+        messages.forEach(msg => {
+          content += `[${msg.created_at}] ${msg.role.toUpperCase()}:\n`;
+          content += `${msg.content}\n\n`;
+          content += `${'-'.repeat(80)}\n\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Disposition', `attachment; filename="session-${sessionId}.txt"`);
+        res.send(content);
+      } else {
+        const data = {
+          session: {
+            id: sessionInfo.id,
+            userId: sessionInfo.user_id,
+            projectId: sessionInfo.project_id,
+            createdAt: sessionInfo.created_at,
+            summary: sessionInfo.summary_text,
+          },
+          messages: messages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            createdAt: msg.created_at,
+          })),
+          exportedAt: new Date().toISOString(),
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="session-${sessionId}.json"`);
+        res.json(data);
+      }
+      return;
+    }
+
     const db = agentService.memory.store.db;
 
     // Get session info
@@ -683,27 +904,32 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
       });
     }
 
-    const db = agentService.memory.store.db;
     const maxLimit = parseInt(limit) || 100;
+    let memories = [];
 
-    // Get memories without embeddings
-    let query = `
-      SELECT m.id, m.text
-      FROM memories m
-      LEFT JOIN embeddings e ON m.id = e.memory_id
-      WHERE e.id IS NULL
-    `;
+    if (agentService.memory.store.getMemoriesWithoutEmbeddings) {
+      memories = await agentService.memory.getMemoriesWithoutEmbeddings(scope, maxLimit);
+    } else {
+      const db = agentService.memory.store.db;
+      // Get memories without embeddings
+      let query = `
+          SELECT m.id, m.text
+          FROM memories m
+          LEFT JOIN embeddings e ON m.id = e.memory_id
+          WHERE e.id IS NULL
+        `;
 
-    const params = [];
-    if (scope) {
-      query += " AND m.scope = ?";
-      params.push(scope);
+      const params = [];
+      if (scope) {
+        query += " AND m.scope = ?";
+        params.push(scope);
+      }
+
+      query += " LIMIT ?";
+      params.push(maxLimit);
+
+      memories = db.prepare(query).all(...params);
     }
-
-    query += " LIMIT ?";
-    params.push(maxLimit);
-
-    const memories = db.prepare(query).all(...params);
 
     if (memories.length === 0) {
       return res.json({
@@ -726,10 +952,15 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
       try {
         const vector = await agentService.memory.store.embeddings.generateEmbedding(memory.text);
         if (vector) {
-          const stmt = db.prepare(
-            "INSERT INTO embeddings(memory_id, vector_json) VALUES (?, ?)"
-          );
-          stmt.run(memory.id, JSON.stringify(vector));
+          if (agentService.memory.store.saveEmbedding) {
+            await agentService.memory.store.saveEmbedding(memory.id, vector);
+          } else {
+            const db = agentService.memory.store.db;
+            const stmt = db.prepare(
+              "INSERT INTO embeddings(memory_id, vector_json) VALUES (?, ?)"
+            );
+            stmt.run(memory.id, JSON.stringify(vector));
+          }
           results.processed++;
         } else {
           results.failed++;
@@ -758,8 +989,17 @@ app.post("/api/memory/embeddings/generate", async (req, res) => {
 // -----------------------------
 // 📊 Embedding Status
 // -----------------------------
-app.get("/api/memory/embeddings/status", (req, res) => {
+app.get("/api/memory/embeddings/status", async (req, res) => {
   try {
+    if (agentService.memory.store.getEmbeddingStatus) {
+      const status = await agentService.memory.getEmbeddingStatus();
+      return res.json({
+        enabled: agentService.memory.isSemanticSearchEnabled(),
+        ...status,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const db = agentService.memory.store.db;
 
     const totalMemories = db.prepare("SELECT COUNT(*) as count FROM memories").get().count;
@@ -1648,9 +1888,14 @@ app.post("/api/analytics/event", (req, res) => {
 // MULTI-USER COLLABORATION ENDPOINTS (Basic)
 // ============================================
 
-app.post("/api/collaboration/session", (req, res) => {
+app.post("/api/collaboration/session", async (req, res) => {
   try {
     const { workflowId, participants } = req.body;
+
+    if (agentService.memory.store.createCollaborationSession) {
+      const sessionId = await agentService.memory.createCollaborationSession({ workflowId, participants });
+      return res.json({ success: true, sessionId });
+    }
 
     const sessionId = randomUUID();
     const db = agentService.memory.store.db;
@@ -1666,9 +1911,14 @@ app.post("/api/collaboration/session", (req, res) => {
   }
 });
 
-app.post("/api/collaboration/event", (req, res) => {
+app.post("/api/collaboration/event", async (req, res) => {
   try {
     const { sessionId, userId, eventType, eventData } = req.body;
+
+    if (agentService.memory.store.logCollaborationEvent) {
+      await agentService.memory.logCollaborationEvent({ sessionId, userId, eventType, eventData });
+      return res.json({ success: true });
+    }
 
     const db = agentService.memory.store.db;
     const stmt = db.prepare(
@@ -1682,8 +1932,13 @@ app.post("/api/collaboration/event", (req, res) => {
   }
 });
 
-app.get("/api/collaboration/events/:sessionId", (req, res) => {
+app.get("/api/collaboration/events/:sessionId", async (req, res) => {
   try {
+    if (agentService.memory.store.getCollaborationEvents) {
+      const events = await agentService.memory.getCollaborationEvents(req.params.sessionId);
+      return res.json({ events, count: events.length });
+    }
+
     const db = agentService.memory.store.db;
     const stmt = db.prepare(
       "SELECT * FROM collaboration_events WHERE collab_session_id = ? ORDER BY created_at DESC LIMIT 100"

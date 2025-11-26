@@ -1,33 +1,40 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { toast } from "react-toastify";
+import { useAuth } from "./contexts/AuthContext";
 
 const ChatContext = createContext();
 
 export const ChatContextProvider = ({ children }) => {
+  const { currentUser } = useAuth();
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState("ask");
   const [availableTools, setAvailableTools] = useState([]);
   const [progressEvents, setProgressEvents] = useState([]);
-  const [insights, setInsights] = useState([]); 
-  const [agentActivity, setAgentActivity] = useState([]); 
-  const [activeAgent, setActiveAgent] = useState(null); 
+  const [insights, setInsights] = useState([]);
+  const [agentActivity, setAgentActivity] = useState([]);
+  const [activeAgent, setActiveAgent] = useState(null);
   const sseRef = useRef(null);
-  
+
   // Session management state
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [sessionName, setSessionName] = useState("New Chat");
   const autoSaveTimeoutRef = useRef(null);
 
-  // Load sessions from API on mount
+  // Load sessions from API on mount and when user changes
   useEffect(() => {
-    loadSessionsFromAPI();
-  }, []);
+    if (currentUser) {
+      loadSessionsFromAPI();
+    }
+  }, [currentUser]);
 
   const loadSessionsFromAPI = async () => {
+    if (!currentUser) return;
+
     try {
-      const response = await fetch('/api/memory/sessions?limit=50');
+      // Pass the authenticated user's ID to get only their sessions
+      const response = await fetch(`/api/memory/sessions?limit=50&userId=${currentUser.uid}`);
       const data = await response.json();
       const apiSessions = (data.sessions || []).map(s => ({
         id: s.id,
@@ -55,17 +62,17 @@ export const ChatContextProvider = ({ children }) => {
   // Auto-save current session when messages change
   useEffect(() => {
     if (messages.length === 0) return;
-    
+
     // Clear existing timeout
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
-    
+
     // Set new timeout for auto-save (debounce)
     autoSaveTimeoutRef.current = setTimeout(() => {
       saveCurrentSession();
     }, 2000); // Auto-save after 2 seconds of inactivity
-    
+
     return () => {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
@@ -74,7 +81,7 @@ export const ChatContextProvider = ({ children }) => {
   }, [messages]);
 
   const stopStream = useCallback(() => {
-    try { sseRef.current?.close?.(); } catch {}
+    try { sseRef.current?.close?.(); } catch { }
     sseRef.current = null;
   }, []);
 
@@ -92,7 +99,19 @@ export const ChatContextProvider = ({ children }) => {
       setIsLoading(true);
       setProgressEvents([]);
       try {
-        const url = `/api/adk/stream?task=${encodeURIComponent(userMessage)}`;
+        // Build conversation context from recent messages
+        const recentMessages = messages.slice(-6); // Last 6 messages (3 turns of user + assistant)
+        let taskWithContext = userMessage;
+
+        if (recentMessages.length > 0) {
+          const contextHistory = recentMessages
+            .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+            .join('\n\n');
+
+          taskWithContext = `Previous conversation:\n${contextHistory}\n\nCurrent request:\n${userMessage}`;
+        }
+
+        const url = `/api/adk/stream?task=${encodeURIComponent(taskWithContext)}`;
         const ev = new EventSource(url);
         sseRef.current = ev;
 
@@ -116,7 +135,7 @@ export const ChatContextProvider = ({ children }) => {
             const d = JSON.parse(e.data);
             setAgentActivity([]);
             setProgressEvents((p) => [...p, { type: "pipeline.start", data: d }]);
-          } catch {}
+          } catch { }
         });
         ev.addEventListener("agent.start", (e) => {
           try {
@@ -129,7 +148,7 @@ export const ChatContextProvider = ({ children }) => {
               timestamp: d.timestamp || new Date().toISOString()
             }]);
             setProgressEvents((p) => [...p, { type: "agent.start", data: d }]);
-          } catch {}
+          } catch { }
         });
         ev.addEventListener("tool.use", (e) => {
           try {
@@ -141,7 +160,7 @@ export const ChatContextProvider = ({ children }) => {
               timestamp: d.timestamp || new Date().toISOString()
             }]);
             setProgressEvents((p) => [...p, { type: "tool.use", data: d }]);
-          } catch {}
+          } catch { }
         });
         ev.addEventListener("agent.output", (e) => {
           try {
@@ -156,7 +175,7 @@ export const ChatContextProvider = ({ children }) => {
               timestamp: new Date().toISOString()
             }]);
             setProgressEvents((p) => [...p, { type: "agent.output", data: d }]);
-          } catch {}
+          } catch { }
         });
         ev.addEventListener("log", (e) => {
           setProgressEvents((p) => [...p, { type: "log", data: JSON.parse(e.data) }]);
@@ -165,14 +184,14 @@ export const ChatContextProvider = ({ children }) => {
           try {
             const d = JSON.parse(e.data);
             setProgressEvents((p) => [...p, { type: "error", data: d }]);
-          } catch {}
+          } catch { }
         });
         ev.addEventListener("pipeline.complete", (e) => {
           try {
             const d = JSON.parse(e.data);
             setActiveAgent(null);
             setProgressEvents((p) => [...p, { type: "pipeline.complete", data: d }]);
-          } catch {}
+          } catch { }
         });
         ev.addEventListener("complete", (e) => {
           try {
@@ -219,7 +238,7 @@ export const ChatContextProvider = ({ children }) => {
     } catch (error) {
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1, role: "assistant", content: `❌ **Error**: ${error.message}` , timestamp: new Date(), provider: "error" },
+        { id: Date.now() + 1, role: "assistant", content: `❌ **Error**: ${error.message}`, timestamp: new Date(), provider: "error" },
       ]);
     } finally {
       setIsLoading(false);
@@ -249,7 +268,9 @@ export const ChatContextProvider = ({ children }) => {
     if (messages.length === 0) return;
 
     try {
+      // CRITICAL: Include userId from authenticated user
       const sessionData = {
+        userId: currentUser?.uid,  // Use real userId, fallback to anonymous
         metadata: {
           chatName: sessionName,
           messages: messages,
@@ -325,13 +346,13 @@ export const ChatContextProvider = ({ children }) => {
       const updatedSessions = sessions.filter(s => s.id !== sessionId);
       setSessions(updatedSessions);
       localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
-      
+
       if (currentSessionId === sessionId) {
         setMessages([]);
         setCurrentSessionId(null);
         setSessionName('New Chat');
       }
-      
+
       toast.success('✅ Session deleted');
     } catch (err) {
       console.error('Failed to delete session:', err);
@@ -371,12 +392,12 @@ export const ChatContextProvider = ({ children }) => {
       }
 
       // Update local state
-      const updatedSessions = sessions.map(s => 
+      const updatedSessions = sessions.map(s =>
         s.id === sessionId ? { ...s, name: newName, updatedAt: new Date().toISOString() } : s
       );
       setSessions(updatedSessions);
       localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
-      
+
       if (currentSessionId === sessionId) {
         setSessionName(newName);
       }

@@ -1,8 +1,17 @@
 import { SQLiteStore } from "./sqliteStore.js";
+import { FirestoreStore } from "./firestoreStore.js";
 
 export class MemoryService {
   constructor(opts = {}) {
-    this.store = new SQLiteStore(opts.dbPath);
+    // Default to Firestore if not explicitly disabled or if configured
+    // For this task, we prioritize Firestore.
+    if (process.env.USE_FIRESTORE !== 'false') {
+      console.log("Using Firestore for MemoryService");
+      this.store = new FirestoreStore();
+    } else {
+      console.log("Using SQLite for MemoryService");
+      this.store = new SQLiteStore(opts.dbPath);
+    }
   }
 
   async getChatContext({ userId, sessionId, projectId, query, limit = 30 }) {
@@ -66,5 +75,58 @@ export class MemoryService {
       return this.store.searchMemories({ scope, query, topK });
     }
     return await this.store.semanticSearch({ scope, query, topK });
+  }
+
+  // Proxy methods for API endpoints
+  async getStats() {
+    if (this.store.getStats) return this.store.getStats();
+    // Fallback for SQLiteStore which might not have this method directly exposed yet, 
+    // or if we want to keep the logic in index.js for SQLite.
+    // But for Firestore, we MUST use the method.
+    return null;
+  }
+
+  async getSessionDetails(sessionId) {
+    if (this.store.getSessionDetails) return this.store.getSessionDetails(sessionId);
+    return null;
+  }
+
+  async getSessionMessages(sessionId, limit) {
+    if (this.store.getSessionMessages) return this.store.getSessionMessages(sessionId, limit);
+    return [];
+  }
+
+  async getSessionToolRuns(sessionId) {
+    if (this.store.getSessionToolRuns) return this.store.getSessionToolRuns(sessionId);
+    return [];
+  }
+
+  async listSessions(opts) {
+    if (this.store.listSessions) return this.store.listSessions(opts);
+    return [];
+  }
+
+  async getEmbeddingStatus() {
+    if (this.store.getEmbeddingStatus) return this.store.getEmbeddingStatus();
+    return { totalMemories: 0, withEmbeddings: 0, coverage: "0%" };
+  }
+
+  async createCollaborationSession(data) {
+    if (this.store.createCollaborationSession) return this.store.createCollaborationSession(data);
+    return null;
+  }
+
+  async logCollaborationEvent(data) {
+    if (this.store.logCollaborationEvent) return this.store.logCollaborationEvent(data);
+  }
+
+  async getCollaborationEvents(sessionId) {
+    if (this.store.getCollaborationEvents) return this.store.getCollaborationEvents(sessionId);
+    return [];
+  }
+
+  async getMemoriesWithoutEmbeddings(scope, limit) {
+    if (this.store.getMemoriesWithoutEmbeddings) return this.store.getMemoriesWithoutEmbeddings(scope, limit);
+    return [];
   }
 }

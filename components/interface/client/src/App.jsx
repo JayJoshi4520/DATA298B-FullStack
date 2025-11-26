@@ -1,26 +1,42 @@
 import "./App.scss";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router";
 import AppRoute from "./AppRoute";
 import MemoryDashboard from "./components/MemoryDashboard";
 import MultiAgentPanel from "./components/MultiAgentPanel";
 import MainLayout from "./components/Layout/MainLayout";
 import { ChatContextProvider } from "./ChatContext";
 import { TabContextProvider } from "./TabContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Login from "./components/Login";
+
+function PrivateRoute({ children }) {
+  const { currentUser } = useAuth();
+  return currentUser ? children : <Navigate to="/login" />;
+}
 
 function App() {
   return (
     <BrowserRouter>
-      <ChatContextProvider>
-        <TabContextProvider>
-          <MainLayout>
+      <AuthProvider>
+        <ChatContextProvider>
+          <TabContextProvider>
             <Routes>
-              <Route path="/dashboard" element={<MemoryDashboard />} />
-              <Route path="/multi-agent" element={<MultiAgentPanel />} />
-              <Route path=":sectionId?" element={<AppRoute />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/*" element={
+                <PrivateRoute>
+                  <MainLayout>
+                    <Routes>
+                      <Route path="/dashboard" element={<MemoryDashboard />} />
+                      <Route path="/multi-agent" element={<MultiAgentPanel />} />
+                      <Route path=":sectionId?" element={<AppRoute />} />
+                    </Routes>
+                  </MainLayout>
+                </PrivateRoute>
+              } />
             </Routes>
-          </MainLayout>
-        </TabContextProvider>
-      </ChatContextProvider>
+          </TabContextProvider>
+        </ChatContextProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

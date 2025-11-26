@@ -1,0 +1,7 @@
+```bash
+    # Set up the backend environment file
+    cp backend/.env.example backend/.env
+
+    # Build and run the containers
+    docker-compose up --build
+    ```

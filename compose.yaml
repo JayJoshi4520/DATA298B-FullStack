@@ -67,6 +67,8 @@ services:
       target: client-dev
     ports:
       - 5173:5173
+    env_file:
+      - ./components/interface/client/.env
     develop:
       watch:
         - path: ./components/interface/client/src
@@ -90,9 +92,9 @@ services:
       socket-proxy:
         condition: service_started
     ports:
-      - 8085:8085 # For the IDE itself
-      - 3000:3000 # For the Node application running in the IDE
-      - 8086:8086
+      - 8085:8085  
+      - 3000:3000 
+      - 8086:8086 
     volumes:
       - socket-proxy:/var/run
       - ./sample-content-repo:/home/coder/project
