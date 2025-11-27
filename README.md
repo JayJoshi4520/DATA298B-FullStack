@@ -39,7 +39,7 @@ ENABLE_MOCK_AI=false
 DEBUG=true
 
 ```
-Create below .env file inside ```/components/api```
+Create below .env file inside ```/components/interface/client```
 ```
 VITE_FIREBASE_API_KEY=""
 VITE_FIREBASE_AUTH_DOMAIN=""
