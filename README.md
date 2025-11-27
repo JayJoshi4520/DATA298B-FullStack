@@ -4,7 +4,7 @@
 
 1. Clone the git Repo using ```git clone https://github.com/JayJoshi4520/DATA298B-FullStack.git```
 2. ```cd DATA298-FullStack```
-3. Create below .env file inside ```/components/api```, NOTE: for testing only change the API KEY of LLM_API_KEY
+3. Create below .env file inside ```/components/interfaceapi```, NOTE: for testing only change the API KEY of LLM_API_KEY
 ```
 # ======================
 # LLM PROVIDER CONFIGURATION
