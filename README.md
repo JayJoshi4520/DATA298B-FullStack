@@ -15,7 +15,8 @@ LLM_PRIMARY_PROVIDER=vertexai
 # GOOGLE VERTEXAI CONFIGURATION
 # ======================
 GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/sa.json
-GOOGLE_GENAI_USE_VERTEXAI=true
+GOOGLE_GENAI_USE_VERTEXAI=false
+GCS_BUCKET_NAME="data298b-project-store"
 LLM_MODEL=projects/excellent-hue-472000-n4/locations/us-east-4/endpoints/3088198308934451200
 GOOGLE_CLOUD_PROJECT=excellent-hue-472000-n4
 GOOGLE_CLOUD_LOCATION=us-east4

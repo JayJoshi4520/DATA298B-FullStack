@@ -32,7 +32,7 @@ export function ChatHeader() {
 
   return (
     <div className="chat-header p-3 border-bottom">
-      <div className="d-flex justify-content-between align-items-center">
+      <div className="d-flex justify-content-center align-items-center">
         <Badge bg="secondary" className="me-2">{sessionName}</Badge>
 
         <h4 className="mb-0 neon-text flex-grow-1 text-center">Immortal AI</h4>

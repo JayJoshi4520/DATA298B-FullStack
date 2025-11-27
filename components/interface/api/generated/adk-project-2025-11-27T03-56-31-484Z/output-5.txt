@@ -1,0 +1,2 @@
+
+- After the script finishes, follow the "Next Steps" printed in the output to build and run the application using Docker Compose.

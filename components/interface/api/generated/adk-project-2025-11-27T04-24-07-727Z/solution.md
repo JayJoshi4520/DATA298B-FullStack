@@ -1,0 +1,3 @@
+ISSUES FOUND:
+- **Missing `.gitignore` file:** The project is generated without a `.gitignore` file. This is a critical omission for any production-ready project, as it would lead to committing `node_modules`, build artifacts, and potentially sensitive environment files into version control. At a minimum, a root `.gitignore` should be created to exclude these common files.
+- **Missing `README.md` file:** A production-ready project requires a `README.md` file that explains what the project is, how to set it up, and how to run it. While the script prints instructions to the console, this is not a substitute for proper, persistent documentation within the project repository itself.

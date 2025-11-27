@@ -1,0 +1,2 @@
+
+2.  **Follow the instructions printed by the script** to build and run the Docker container.
