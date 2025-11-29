@@ -149,6 +149,25 @@ export function MessageComponent({ message, searchQuery }) {
     }
   };
 
+  // Relative time formatting
+  const formatRelativeTime = (timestamp) => {
+    if (!timestamp) return '';
+    const now = new Date();
+    const date = new Date(timestamp);
+    const diffMs = now - date;
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSecs < 60) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
   const formatTimestamp = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: "2-digit",
@@ -184,6 +203,11 @@ export function MessageComponent({ message, searchQuery }) {
                 {message.provider}
                 {message.model && ` (${message.model.split("/").pop()})`}
               </Badge>
+            )}
+            {message.timestamp && (
+              <span className="message-time ms-2" title={new Date(message.timestamp).toLocaleString()}>
+                {formatRelativeTime(message.timestamp)}
+              </span>
             )}
           </div>
         </div>

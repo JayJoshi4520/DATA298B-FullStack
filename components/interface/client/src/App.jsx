@@ -27,11 +27,13 @@ function App() {
               <Route path="/*" element={
                 <PrivateRoute>
                   <MainLayout>
-                    <Routes>
-                      <Route path="/dashboard" element={<MemoryDashboard />} />
-                      <Route path="/multi-agent" element={<MultiAgentPanel />} />
-                      <Route path=":sectionId?" element={<AppRoute />} />
-                    </Routes>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+                      <Routes>
+                        <Route path="/dashboard" element={<MemoryDashboard />} />
+                        <Route path="/multi-agent" element={<MultiAgentPanel />} />
+                        <Route path=":sectionId?" element={<AppRoute />} />
+                      </Routes>
+                    </div>
                   </MainLayout>
                 </PrivateRoute>
               } />

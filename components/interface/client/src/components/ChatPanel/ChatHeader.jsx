@@ -1,8 +1,8 @@
 import { useChat } from "../../ChatContext";
-import { Badge } from "react-bootstrap";
+import { Badge, Dropdown, ButtonGroup } from "react-bootstrap";
 
 export function ChatHeader() {
-  const { mode, setMode, sessionName } = useChat();
+  const { mode, setMode, sessionName, messages, exportConversation } = useChat();
 
   const modeOptions = [
     {
@@ -31,9 +31,11 @@ export function ChatHeader() {
   return (
     <div className="chat-header" style={{
       padding: '0.75rem 1.5rem',
+      paddingLeft: '4rem', // Space for sidebar toggle button when collapsed
       background: 'rgba(15, 23, 42, 0.8)',
       backdropFilter: 'blur(12px)',
       borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+      flexShrink: 0,
     }}>
       <div className="d-flex justify-content-between align-items-center">
         {/* Brand */}
@@ -42,9 +44,10 @@ export function ChatHeader() {
             background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
             fontWeight: 700,
             fontSize: '1.25rem',
-            textShadow: '0 0 30px rgba(139, 92, 246, 0.5)',
+            whiteSpace: 'nowrap',
           }}>Immortal AI</h4>
         </div>
 
@@ -76,6 +79,48 @@ export function ChatHeader() {
               {option.title}
             </button>
           ))}
+
+          {/* Export Dropdown */}
+          {messages && messages.length > 0 && (
+            <Dropdown as={ButtonGroup}>
+              <Dropdown.Toggle
+                variant="link"
+                style={{
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  border: 'none',
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.85rem',
+                }}
+                title="Export conversation"
+              >
+                📥
+              </Dropdown.Toggle>
+              <Dropdown.Menu align="end" style={{
+                background: 'rgba(30, 27, 75, 0.95)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+              }}>
+                <Dropdown.Item 
+                  onClick={() => exportConversation('json')}
+                  style={{ color: 'white' }}
+                >
+                  📄 Export as JSON
+                </Dropdown.Item>
+                <Dropdown.Item 
+                  onClick={() => exportConversation('markdown')}
+                  style={{ color: 'white' }}
+                >
+                  📝 Export as Markdown
+                </Dropdown.Item>
+                <Dropdown.Item 
+                  onClick={() => exportConversation('text')}
+                  style={{ color: 'white' }}
+                >
+                  📃 Export as Text
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          )}
         </div>
       </div>
     </div>

@@ -9,9 +9,9 @@
   color: $gray-200;
   padding: 40px;
   background: transparent;
+  width: 100%;
   height: 100%;
   flex: 1;
-  min-height: calc(100vh - 60px);
 
   svg {
     width: 64px;

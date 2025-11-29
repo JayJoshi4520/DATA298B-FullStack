@@ -138,7 +138,7 @@ export function ChatInput() {
   };
 
   return (
-    <div className="chat-input border-top p-3">
+    <div className="chat-input" style={{ flexShrink: 0 }}>
       {/* Context Info Panel */}
       {(mode === 'agent' || mode === 'ask') && contextFiles.length > 0 && (
         <div className="context-panel mb-2 p-3" style={{
@@ -230,183 +230,180 @@ export function ChatInput() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          {/* Voice Input Button */}
-          {recognition && (
-            <Button
-              variant={isRecording ? 'danger' : 'outline-secondary'}
-              onClick={toggleVoiceInput}
-              disabled={isLoading}
-              title={isRecording ? 'Stop recording' : 'Start voice input'}
-              style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-            >
-              {isRecording ? '🔴' : '🎤'}
-            </Button>
-          )}
-
-          <div style={{ position: 'relative', flex: 1 }}>
-            <textarea
-              ref={textareaRef}
-              className="form-control"
-              value={input}
-              onChange={(e) => {
-                const value = e.target.value;
-                const cursorPos = e.target.selectionStart;
-                setInput(value);
-
-                // Detect @ mention
-                const textBeforeCursor = value.substring(0, cursorPos);
-                const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-
-                if (lastAtIndex !== -1) {
-                  const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
-                  // Check if there's no space after @
-                  if (!textAfterAt.includes(' ')) {
-                    console.log('[@ Mention] Detected @ at position', lastAtIndex, 'query:', textAfterAt);
-                    setShowMentionDropdown(true);
-                    setMentionQuery(textAfterAt);
-                    setMentionStartPos(lastAtIndex);
-                    setSelectedMentionIndex(0);
-                  } else {
+      <form onSubmit={handleSubmit} style={{ position: 'relative' }}>
+        {/* @ Mention Dropdown - positioned above form */}
+        {showMentionDropdown && (
+          <div
+            className="mention-dropdown"
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 0,
+              right: 0,
+              maxHeight: '200px',
+              overflowY: 'auto',
+              background: 'rgba(30, 41, 59, 0.98)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(236, 72, 153, 0.3)',
+              borderRadius: '12px',
+              marginBottom: '8px',
+              boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.4)',
+              zIndex: 1000,
+            }}
+          >
+            {mentionFiles.length > 0 ? (
+              mentionFiles.map((file, index) => (
+                <div
+                  key={file.path}
+                  onClick={() => {
+                    const before = input.substring(0, mentionStartPos);
+                    const after = input.substring(textareaRef.current.selectionStart);
+                    const newInput = before + file.path + ' ' + after;
+                    setInput(newInput);
                     setShowMentionDropdown(false);
-                  }
-                } else {
-                  setShowMentionDropdown(false);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (showMentionDropdown && mentionFiles.length > 0) {
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setSelectedMentionIndex(prev =>
-                      prev < mentionFiles.length - 1 ? prev + 1 : prev
-                    );
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setSelectedMentionIndex(prev => prev > 0 ? prev - 1 : 0);
-                  } else if (e.key === 'Enter' || e.key === 'Tab') {
-                    e.preventDefault();
-                    const selectedFile = mentionFiles[selectedMentionIndex];
-                    if (selectedFile) {
-                      const before = input.substring(0, mentionStartPos);
-                      const after = input.substring(textareaRef.current.selectionStart);
-                      const newInput = before + selectedFile.path + ' ' + after;
-                      setInput(newInput);
-                      setShowMentionDropdown(false);
-                      // Set cursor position after inserted text
-                      setTimeout(() => {
-                        const newPos = (before + selectedFile.path + ' ').length;
-                        textareaRef.current.setSelectionRange(newPos, newPos);
-                        textareaRef.current.focus();
-                      }, 0);
-                    }
-                  } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    setShowMentionDropdown(false);
-                  }
-                } else if (e.key === 'Enter') {
-                  // Cmd+Enter or Ctrl+Enter always sends
-                  if (e.metaKey || e.ctrlKey) {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }
-                  // Plain Enter also sends (Shift+Enter for new line)
-                  else if (!e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }
-                }
-              }}
-              placeholder={getPlaceholder()}
-              disabled={isLoading}
-              rows={2}
-              style={{ resize: 'none' }}
-            />
-
-            {/* @ Mention Dropdown */}
-            {showMentionDropdown && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: 0,
-                  right: 0,
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  background: 'rgba(30, 41, 59, 0.98)',
-                  backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(99, 102, 241, 0.3)',
-                  borderRadius: '8px',
-                  marginBottom: '8px',
-                  boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.3)',
-                  zIndex: 1000,
-                }}
-              >
-                {mentionFiles.length > 0 ? (
-                  mentionFiles.map((file, index) => (
-                    <div
-                      key={file.path}
-                      onClick={() => {
-                        const before = input.substring(0, mentionStartPos);
-                        const after = input.substring(textareaRef.current.selectionStart);
-                        const newInput = before + file.path + ' ' + after;
-                        setInput(newInput);
-                        setShowMentionDropdown(false);
-                        textareaRef.current.focus();
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        background: index === selectedMentionIndex
-                          ? 'rgba(99, 102, 241, 0.2)'
-                          : 'transparent',
-                        borderLeft: index === selectedMentionIndex
-                          ? '3px solid #6366f1'
-                          : '3px solid transparent',
-                        transition: 'all 0.15s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
-                      onMouseEnter={() => setSelectedMentionIndex(index)}
-                    >
-                      <span style={{ fontSize: '1.2em' }}>
-                        {file.type === 'directory' ? '📁' : '📄'}
-                      </span>
-                      <span style={{
-                        color: index === selectedMentionIndex ? '#a5b4fc' : '#cbd5e1',
-                        fontSize: '0.9em',
-                      }}>
-                        {file.path}
-                      </span>
-                      <Badge
-                        bg="secondary"
-                        style={{
-                          fontSize: '0.7em',
-                          marginLeft: 'auto',
-                          opacity: 0.7,
-                        }}
-                      >
-                        {file.type}
-                      </Badge>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.9em' }}>
-                    {mentionQuery ? `No files matching "${mentionQuery}"` : 'Loading files...'}
-                  </div>
-                )}
+                    textareaRef.current.focus();
+                  }}
+                  style={{
+                    padding: '10px 14px',
+                    cursor: 'pointer',
+                    background: index === selectedMentionIndex
+                      ? 'rgba(236, 72, 153, 0.15)'
+                      : 'transparent',
+                    borderLeft: index === selectedMentionIndex
+                      ? '3px solid #ec4899'
+                      : '3px solid transparent',
+                    transition: 'all 0.15s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                  }}
+                  onMouseEnter={() => setSelectedMentionIndex(index)}
+                >
+                  <span style={{ fontSize: '1.2em' }}>
+                    {file.type === 'directory' ? '📁' : '📄'}
+                  </span>
+                  <span style={{
+                    color: index === selectedMentionIndex ? '#f9a8d4' : '#cbd5e1',
+                    fontSize: '0.9em',
+                  }}>
+                    {file.path}
+                  </span>
+                  <Badge
+                    bg="secondary"
+                    style={{
+                      fontSize: '0.7em',
+                      marginLeft: 'auto',
+                      opacity: 0.7,
+                    }}
+                  >
+                    {file.type}
+                  </Badge>
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.9em' }}>
+                {mentionQuery ? `No files matching "${mentionQuery}"` : 'Loading files...'}
               </div>
             )}
           </div>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={!input.trim() || isLoading}
-          >
-            {isLoading ? "⏳" : "🚀 Send"}
-          </button>
+        )}
+
+        <div className="input-wrapper">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => {
+              const value = e.target.value;
+              const cursorPos = e.target.selectionStart;
+              setInput(value);
+
+              // Detect @ mention
+              const textBeforeCursor = value.substring(0, cursorPos);
+              const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+              if (lastAtIndex !== -1) {
+                const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+                if (!textAfterAt.includes(' ')) {
+                  console.log('[@ Mention] Detected @ at position', lastAtIndex, 'query:', textAfterAt);
+                  setShowMentionDropdown(true);
+                  setMentionQuery(textAfterAt);
+                  setMentionStartPos(lastAtIndex);
+                  setSelectedMentionIndex(0);
+                } else {
+                  setShowMentionDropdown(false);
+                }
+              } else {
+                setShowMentionDropdown(false);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (showMentionDropdown && mentionFiles.length > 0) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setSelectedMentionIndex(prev =>
+                    prev < mentionFiles.length - 1 ? prev + 1 : prev
+                  );
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setSelectedMentionIndex(prev => prev > 0 ? prev - 1 : 0);
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault();
+                  const selectedFile = mentionFiles[selectedMentionIndex];
+                  if (selectedFile) {
+                    const before = input.substring(0, mentionStartPos);
+                    const after = input.substring(textareaRef.current.selectionStart);
+                    const newInput = before + selectedFile.path + ' ' + after;
+                    setInput(newInput);
+                    setShowMentionDropdown(false);
+                    setTimeout(() => {
+                      const newPos = (before + selectedFile.path + ' ').length;
+                      textareaRef.current.setSelectionRange(newPos, newPos);
+                      textareaRef.current.focus();
+                    }, 0);
+                  }
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setShowMentionDropdown(false);
+                }
+              } else if (e.key === 'Enter') {
+                if (e.metaKey || e.ctrlKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                } else if (!e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }
+            }}
+            placeholder={getPlaceholder()}
+            disabled={isLoading}
+            rows={2}
+          />
+
+          <div className="input-actions">
+            <div className="left-actions">
+              {recognition && (
+                <button
+                  type="button"
+                  onClick={toggleVoiceInput}
+                  disabled={isLoading}
+                  title={isRecording ? 'Stop recording' : 'Start voice input'}
+                  className={`btn btn-sm ${isRecording ? 'btn-danger' : 'btn-outline-secondary'}`}
+                >
+                  {isRecording ? '🔴' : '🎤'}
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              className="btn-send"
+              disabled={!input.trim() || isLoading}
+            >
+              <span className="material-symbols-outlined">
+                {isLoading ? 'hourglass_empty' : 'send'}
+              </span>
+            </button>
+          </div>
         </div>
         <div className="d-flex justify-content-between align-items-center mt-2">
           <small className="text-white">

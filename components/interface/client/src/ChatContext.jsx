@@ -95,14 +95,24 @@ export const ChatContextProvider = ({ children }) => {
       // Pass the authenticated user's ID to get only their sessions
       const response = await fetch(`/api/memory/sessions?limit=50&userId=${currentUser.uid}`);
       const data = await response.json();
-      const apiSessions = (data.sessions || []).map(s => ({
-        id: s.id,
-        name: s.metadata?.chatName || `Chat ${new Date(s.createdAt).toLocaleString()}`,
-        messages: s.metadata?.messages || [],
-        mode: s.metadata?.mode || 'ask',
-        createdAt: s.createdAt,
-        updatedAt: s.updatedAt || s.createdAt,
-      }));
+      const apiSessions = (data.sessions || []).map(s => {
+        // Safe date formatting
+        let dateStr = 'Recent';
+        if (s.createdAt) {
+          const d = new Date(s.createdAt);
+          if (!isNaN(d.getTime())) {
+            dateStr = d.toLocaleString();
+          }
+        }
+        return {
+          id: s.id,
+          name: s.metadata?.chatName || `Chat ${dateStr}`,
+          messages: s.metadata?.messages || [],
+          mode: s.metadata?.mode || 'ask',
+          createdAt: s.createdAt || new Date().toISOString(),
+          updatedAt: s.updatedAt || s.createdAt || new Date().toISOString(),
+        };
+      });
       setSessions(apiSessions);
     } catch (err) {
       console.error('Failed to load sessions from API:', err);
@@ -542,6 +552,65 @@ export const ChatContextProvider = ({ children }) => {
     toast.info('🆕 New chat started');
   }, [messages, saveCurrentSession]);
 
+  // Export conversation functions
+  const exportConversation = useCallback((format = 'json') => {
+    if (messages.length === 0) {
+      toast.warning('No messages to export');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    let content = '';
+    let filename = '';
+    let mimeType = 'text/plain';
+
+    if (format === 'json') {
+      const exportData = {
+        sessionId: currentSessionId,
+        sessionName,
+        exportedAt: new Date().toISOString(),
+        messageCount: messages.length,
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+          provider: m.provider,
+          model: m.model,
+        }))
+      };
+      content = JSON.stringify(exportData, null, 2);
+      filename = `conversation-${timestamp}.json`;
+      mimeType = 'application/json';
+    } else if (format === 'markdown') {
+      const header = `# ${sessionName || 'Conversation'}\n\nExported: ${new Date().toLocaleString()}\n\n---\n\n`;
+      content = header + messages.map(m => {
+        const role = m.role === 'user' ? '👤 **You**' : '🤖 **Immortal**';
+        const time = m.timestamp ? new Date(m.timestamp).toLocaleString() : '';
+        return `### ${role} ${time ? `_(${time})_` : ''}\n\n${m.content}\n\n---\n`;
+      }).join('\n');
+      filename = `conversation-${timestamp}.md`;
+    } else if (format === 'text') {
+      content = messages.map(m => {
+        const role = m.role === 'user' ? 'You' : 'Immortal';
+        const time = m.timestamp ? `[${new Date(m.timestamp).toLocaleString()}]` : '';
+        return `${time} ${role}:\n${m.content}\n\n`;
+      }).join('');
+      filename = `conversation-${timestamp}.txt`;
+    }
+
+    // Create and download file
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`✅ Exported as ${format.toUpperCase()}`);
+  }, [messages, sessionName, currentSessionId]);
+
   const renameSession = useCallback(async (sessionId, newName) => {
     try {
       // Update session name in API
@@ -608,6 +677,7 @@ export const ChatContextProvider = ({ children }) => {
         deleteSession,
         newSession,
         renameSession,
+        exportConversation,
       }}
     >
       {children}

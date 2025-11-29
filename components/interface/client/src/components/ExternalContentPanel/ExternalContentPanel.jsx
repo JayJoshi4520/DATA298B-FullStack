@@ -77,8 +77,8 @@ export function ExternalContentPanel() {
   };
 
   return (
-    <div className="d-flex flex-fill flex-column">
-      <div className="p-3 pt-2 pb-0 ecp-header">
+    <div className="external-content-panel" style={{ width: '100%', height: '100%', overflow: 'hidden', margin: 0, padding: 0 }}>
+      <div className="ecp-header" style={{ padding: '0.5rem 0.75rem' }}>
         <div className="d-flex justify-content-between align-items-center mb-2">
           <ExternalTabs
             activeTab={activeTab}
@@ -99,7 +99,15 @@ export function ExternalContentPanel() {
         viewMode === 'iframe' ? (
           <iframe
             ref={iframeRef}
-            style={{ flex: 1, border: "none" }}
+            style={{ 
+              flex: 1, 
+              width: '100%', 
+              height: '100%', 
+              border: 'none',
+              margin: 0,
+              padding: 0,
+              display: 'block'
+            }}
             src={activeTab}
           />
         ) : (

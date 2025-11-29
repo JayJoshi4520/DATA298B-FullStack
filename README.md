@@ -2,8 +2,7 @@
 
 ## Try it out
 
-1. Clone the git Repo using ```git clone https://github.com/JayJoshi4520/DATA298B-FullStack.git```
-2. ```cd DATA298-FullStack```
+1. Clone the git Repo using
 3. Create below .env file inside ```/components/interface/api```, NOTE: for testing only change the API KEY of LLM_API_KEY
 ```
 # ======================
@@ -283,4 +282,414 @@ User can input sentences, the backend predicts sentiment using a tiny neural net
 - `docker-compose.yml`
 
 Ensure the dataset is tiny and training is fast (<10 seconds).
+```
+
+8.
+```
+Create a full-stack developer tool named "code_snippet_manager" under the target directory.
+A tool for developers to save, organize, and search code snippets with syntax highlighting.
+
+**Backend (FastAPI):**
+- Folder `backend/` with:
+  - `main.py` with CRUD endpoints `/snippets`
+  - `models.py` defining Snippet (id, title, language, code, tags, created_at)
+  - Search by language or tags
+  - `requirements.txt` (fastapi, uvicorn)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios, react-syntax-highlighter, prismjs)
+  - `src/App.js` with snippet list, code editor, syntax highlighting preview
+  - `src/components/SnippetCard.js`, `src/components/CodeEditor.js`
+  - `src/App.css` with VS Code-like dark theme
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Generate complete working code with syntax highlighting for 10+ languages.
+```
+
+9.
+```
+Create a full-stack developer tool named "api_tester" under the target directory.
+A Postman-like tool for testing REST APIs.
+
+**Backend (Node.js + Express):**
+- Folder `backend/` with:
+  - `server.js` with `/proxy` endpoint to forward requests (avoid CORS)
+  - `history.js` to save request history
+  - `package.json` (express, axios, cors)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with URL input, method selector (GET/POST/PUT/DELETE), headers editor, body editor, response viewer
+  - `src/components/RequestBuilder.js`, `src/components/ResponseViewer.js`
+  - `src/App.css` with Postman-inspired dark UI
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+All code must be functional.
+```
+
+10.
+```
+Create a full-stack developer tool named "json_formatter" under the target directory.
+A tool to format, validate, and visualize JSON data.
+
+**Backend (FastAPI):**
+- Folder `backend/` with:
+  - `main.py` with `/format`, `/validate`, `/minify` endpoints
+  - `utils.py` for JSON operations
+  - `requirements.txt` (fastapi, uvicorn)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios, react-json-view)
+  - `src/App.js` with input textarea, formatted output, tree view toggle
+  - `src/components/JsonTree.js`, `src/components/ErrorDisplay.js`
+  - `src/App.css` with developer-friendly dark theme
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Generate complete code with real-time validation.
+```
+
+11.
+```
+Create a full-stack developer tool named "regex_tester" under the target directory.
+A tool for testing and debugging regular expressions.
+
+**Backend (Flask):**
+- Folder `backend/` with:
+  - `app.py` with `/test` endpoint accepting pattern and test string
+  - Return matches, groups, and positions
+  - `requirements.txt` (flask, flask-cors)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with regex input, test string input, highlighted matches, match groups display
+  - `src/components/MatchHighlighter.js`, `src/components/CheatSheet.js`
+  - `src/App.css` with syntax-highlighted styling
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Include a regex cheat sheet sidebar.
+```
+
+12.
+```
+Create a full-stack developer tool named "git_commit_generator" under the target directory.
+Generate conventional commit messages from code diffs.
+
+**Backend (FastAPI + AI):**
+- Folder `backend/` with:
+  - `main.py` with `/generate` endpoint accepting diff text
+  - `prompts.py` with templates for conventional commits
+  - Generate commit message based on diff analysis
+  - `requirements.txt` (fastapi, uvicorn)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios, react-diff-viewer)
+  - `src/App.js` with diff input, generated commit message, copy button
+  - `src/components/DiffViewer.js`, `src/components/CommitPreview.js`
+  - `src/App.css` with GitHub-like diff styling
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Generate complete working code.
+```
+
+13.
+```
+Create a full-stack developer tool named "dependency_analyzer" under the target directory.
+Analyze package.json or requirements.txt for outdated/vulnerable dependencies.
+
+**Backend (Node.js + Express):**
+- Folder `backend/` with:
+  - `server.js` with `/analyze` endpoint accepting package file content
+  - `analyzer.js` parsing dependencies and checking versions
+  - Mock vulnerability database
+  - `package.json` (express, cors, semver)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with file upload/paste, dependency table with status badges
+  - `src/components/DependencyTable.js`, `src/components/VulnerabilityAlert.js`
+  - `src/App.css` with npm-style UI
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+All code must be functional.
+```
+
+14.
+```
+Create a full-stack developer tool named "sql_playground" under the target directory.
+An interactive SQL query editor with in-memory SQLite database.
+
+**Backend (FastAPI):**
+- Folder `backend/` with:
+  - `main.py` with `/query` endpoint executing SQL
+  - `database.py` setting up sample tables (users, orders, products)
+  - Pre-populate with sample data
+  - `requirements.txt` (fastapi, uvicorn, aiosqlite)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios, react-table)
+  - `src/App.js` with SQL editor, execute button, results table, schema sidebar
+  - `src/components/QueryEditor.js`, `src/components/ResultsTable.js`
+  - `src/App.css` with database tool styling
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Generate complete playground with 3 sample tables.
+```
+
+15.
+```
+Create a full-stack developer tool named "env_manager" under the target directory.
+Manage and compare .env files across environments.
+
+**Backend (Flask):**
+- Folder `backend/` with:
+  - `app.py` with `/parse`, `/compare`, `/generate` endpoints
+  - `parser.py` for .env file parsing
+  - `requirements.txt` (flask, flask-cors)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with env file editor, diff view, missing vars highlight
+  - `src/components/EnvEditor.js`, `src/components/DiffView.js`
+  - `src/App.css` with terminal-like styling
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+All code must be complete.
+```
+
+16.
+```
+Create a full-stack developer tool named "cron_builder" under the target directory.
+A visual cron expression builder and scheduler.
+
+**Backend (FastAPI):**
+- Folder `backend/` with:
+  - `main.py` with `/parse`, `/next-runs` endpoints
+  - `cron_utils.py` for cron expression parsing
+  - Return next 10 execution times
+  - `requirements.txt` (fastapi, uvicorn, croniter)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with visual cron builder (dropdowns for each field), expression preview, next runs list
+  - `src/components/CronField.js`, `src/components/NextRuns.js`
+  - `src/App.css` with clean developer UI
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Generate complete working cron builder.
+```
+
+17.
+```
+Create a full-stack developer tool named "base64_toolkit" under the target directory.
+Encode/decode Base64, handle images, and JWT tokens.
+
+**Backend (Node.js + Express):**
+- Folder `backend/` with:
+  - `server.js` with `/encode`, `/decode`, `/jwt-decode` endpoints
+  - Support text and file encoding
+  - `package.json` (express, cors, jsonwebtoken)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with tabs: Text Encoder, Image Encoder, JWT Decoder
+  - `src/components/TextEncoder.js`, `src/components/ImageEncoder.js`, `src/components/JwtDecoder.js`
+  - `src/App.css` with tool-style tabbed UI
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+All code must be functional.
+```
+
+18.
+```
+Create a full-stack developer tool named "color_palette_generator" under the target directory.
+Generate color palettes for UI development.
+
+**Backend (FastAPI):**
+- Folder `backend/` with:
+  - `main.py` with `/generate`, `/complement`, `/shades` endpoints
+  - `colors.py` for color manipulation (HSL, RGB, Hex conversions)
+  - `requirements.txt` (fastapi, uvicorn)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios, react-colorful)
+  - `src/App.js` with color picker, generated palette display, CSS export
+  - `src/components/ColorPicker.js`, `src/components/PaletteDisplay.js`
+  - `src/App.css` with clean design tool styling
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Export CSS variables and Tailwind config.
+```
+
+19.
+```
+Create a full-stack developer tool named "markdown_preview" under the target directory.
+Live markdown editor with GitHub-flavored markdown support.
+
+**Backend (Flask):**
+- Folder `backend/` with:
+  - `app.py` with `/render` endpoint converting markdown to HTML
+  - Support GFM (tables, code blocks, task lists)
+  - `requirements.txt` (flask, flask-cors, markdown, pygments)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with split-pane editor and live preview
+  - `src/components/Editor.js`, `src/components/Preview.js`
+  - `src/App.css` with GitHub markdown styling
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Generate complete editor with syntax highlighting for code blocks.
+```
+
+20.
+```
+Create a full-stack developer tool named "lorem_ipsum_generator" under the target directory.
+Generate placeholder content for developers.
+
+**Backend (FastAPI):**
+- Folder `backend/` with:
+  - `main.py` with `/generate` endpoint (paragraphs, sentences, words, names, emails)
+  - `generators.py` with various content generators
+  - `requirements.txt` (fastapi, uvicorn, faker)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with type selector, count input, generated content, copy button
+  - `src/components/GeneratorForm.js`, `src/components/OutputDisplay.js`
+  - `src/App.css` with minimal developer UI
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Support: Lorem Ipsum, Names, Emails, Addresses, UUIDs.
+```
+
+21.
+```
+Create a full-stack developer tool named "http_status_reference" under the target directory.
+An interactive HTTP status code reference for developers.
+
+**Backend (Node.js + Express):**
+- Folder `backend/` with:
+  - `server.js` with `/status/:code` returning details
+  - `statuses.js` containing all HTTP status codes with descriptions and use cases
+  - `package.json` (express, cors)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with searchable status code list, category filters (1xx, 2xx, 3xx, 4xx, 5xx)
+  - `src/components/StatusCard.js`, `src/components/CategoryFilter.js`
+  - `src/App.css` with color-coded categories
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+All code must be functional.
+```
+
+22.
+```
+Create a full-stack developer tool named "timestamp_converter" under the target directory.
+Convert between Unix timestamps and human-readable dates.
+
+**Backend (FastAPI):**
+- Folder `backend/` with:
+  - `main.py` with `/to-unix`, `/from-unix`, `/now` endpoints
+  - Support multiple formats and timezones
+  - `requirements.txt` (fastapi, uvicorn, pytz)
+  - `README.md`
+
+**Frontend (React):**
+- Folder `frontend/` with:
+  - `package.json` (react, axios)
+  - `src/App.js` with bidirectional converter, timezone selector, current time display
+  - `src/components/TimestampInput.js`, `src/components/DateOutput.js`
+  - `src/App.css` with clean utility styling
+  - `README.md`
+
+**Root Files:**
+- `.gitignore`
+- `docker-compose.yml`
+
+Generate complete working converter.
 ```

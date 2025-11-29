@@ -4,6 +4,30 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router';
 
+// Safe date formatter - handles various date formats
+const formatDate = (dateValue) => {
+  if (!dateValue) return 'Just now';
+  try {
+    // Handle timestamp numbers
+    if (typeof dateValue === 'number') {
+      const date = new Date(dateValue);
+      if (!isNaN(date.getTime())) return date.toLocaleString();
+    }
+    // Handle string dates
+    if (typeof dateValue === 'string') {
+      const date = new Date(dateValue);
+      if (!isNaN(date.getTime())) return date.toLocaleString();
+    }
+    // Handle Date objects
+    if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+      return dateValue.toLocaleString();
+    }
+    return 'Just now';
+  } catch {
+    return 'Just now';
+  }
+};
+
 const MemoryDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
@@ -281,7 +305,7 @@ const MemoryDashboard = () => {
                     </td>
                     <td><code style={{ fontSize: '0.85em' }}>{s.id.substring(0, 8)}...</code></td>
                     <td><Badge bg="primary">{s.messageCount || 0}</Badge></td>
-                    <td><small>{new Date(s.createdAt).toLocaleString()}</small></td>
+                    <td><small>{formatDate(s.createdAt || s.created_at || s.timestamp)}</small></td>
                     <td>
                       <ButtonGroup size="sm">
                         <Button 

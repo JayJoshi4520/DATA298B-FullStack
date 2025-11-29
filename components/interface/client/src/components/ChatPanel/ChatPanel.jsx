@@ -8,7 +8,13 @@ import "./ChatPanel.scss";
 
 export function ChatPanel() {
   return (
-    <div className="d-flex flex-column h-100 chat-panel">
+    <div className="chat-panel" style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100%',
+      flex: 1,
+      overflow: 'hidden'
+    }}>
       <ChatHeader />
       <ChatBody />
       <ChatInput />

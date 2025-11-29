@@ -210,17 +210,19 @@ Focus on targeted fixes rather than complete rewrites.`;
           console.warn(`⚠️ Python process exited with code ${code} (may be MCP cleanup error)`);
         }
 
-        // Parse result - if buffer is empty or invalid, pipeline failed for real
+        // Parse result - if buffer is empty or invalid, try to handle gracefully
         try {
-          finalResult = JSON.parse(buffer);
-          console.log('✅ Successfully parsed pipeline results');
-        } catch (parseError) {
-          console.error('❌ Failed to parse pipeline results:', parseError.message);
-          // If we can't parse results, the pipeline definitely failed
-          if (!buffer || buffer.trim() === '') {
-            throw new Error(`Pipeline failed: no output received (exit code: ${code})`);
+          if (buffer && buffer.trim()) {
+            finalResult = JSON.parse(buffer);
+            console.log('✅ Successfully parsed pipeline results');
+          } else {
+            console.log('ℹ️ No JSON buffer to parse - pipeline may have streamed all output');
+            finalResult = [];
           }
-          // Try to salvage partial results
+        } catch (parseError) {
+          console.warn('⚠️ Could not parse pipeline results as JSON:', parseError.message);
+          // Don't throw - the pipeline may have worked via streaming
+          // Just set empty results and continue
           finalResult = [];
         }
 

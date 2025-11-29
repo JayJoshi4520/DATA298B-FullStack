@@ -5,11 +5,11 @@
 
 // Timeouts (in milliseconds)
 export const TIMEOUTS = {
-  ADK_PIPELINE: 180_000,          // 3 minutes - for ADK pipeline execution
+  ADK_PIPELINE: 300_000,          // 5 minutes - for ADK pipeline execution (increased)
   OUTPUT_EXECUTION: 300_000,      // 5 minutes - for output.py execution
   SSE_HEARTBEAT: 15_000,          // 15 seconds - Server-Sent Events heartbeat
   COMMAND_EXECUTION: 30_000,      // 30 seconds - general command execution
-  LLM_REQUEST: 60_000,            // 1 minute - LLM API request timeout
+  LLM_REQUEST: 120_000,           // 2 minutes - LLM API request timeout (increased)
   RETRY_DELAY_BASE: 1_000,        // 1 second - base delay for exponential backoff
 };
 
@@ -28,15 +28,15 @@ export const LIMITS = {
 export const RATE_LIMITS = {
   API: {
     WINDOW_MS: 15 * 60 * 1000,    // 15 minutes
-    MAX_REQUESTS: 100,             // requests per window
+    MAX_REQUESTS: 500,             // requests per window (increased for frequent polling)
   },
   ADK: {
     WINDOW_MS: 60 * 60 * 1000,    // 1 hour
-    MAX_REQUESTS: 10,              // ADK is expensive, limit heavily
+    MAX_REQUESTS: 20,              // ADK is expensive, but allow more for development
   },
   CHAT: {
     WINDOW_MS: 1 * 60 * 1000,     // 1 minute
-    MAX_REQUESTS: 20,              // reasonable chat rate
+    MAX_REQUESTS: 30,              // reasonable chat rate (increased slightly)
   },
 };
 

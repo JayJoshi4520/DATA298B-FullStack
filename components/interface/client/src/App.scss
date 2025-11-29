@@ -54,27 +54,105 @@ h4 {
   font-size: 1.125rem;
 }
 
-// Root Layout
+// Prevent page scrolling - only allow internal scrolling
+html, body {
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+// Animated Gradient Background Keyframes
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes auroraMove {
+  0% {
+    transform: translate(0%, 0%) rotate(0deg);
+  }
+  33% {
+    transform: translate(30%, -20%) rotate(120deg);
+  }
+  66% {
+    transform: translate(-20%, 30%) rotate(240deg);
+  }
+  100% {
+    transform: translate(0%, 0%) rotate(360deg);
+  }
+}
+
+// Root Layout with Animated Gradient
 #root {
   display: flex;
   height: 100vh;
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4c1d95 50%, #6d28d9 75%, #7c3aed 100%);
+  width: 100vw;
+  max-width: 100%;
+  // Animated purple-to-pink gradient
+  background: linear-gradient(
+    -45deg,
+    #1e1b4b,    // Deep indigo
+    #312e81,    // Indigo
+    #4c1d95,    // Purple
+    #7c3aed,    // Violet
+    #a855f7,    // Light purple
+    #d946ef,    // Fuchsia/Pink
+    #ec4899,    // Pink
+    #be185d,    // Rose
+    #7c3aed,    // Back to violet
+    #4c1d95,    // Purple
+    #312e81,    // Indigo
+    #1e1b4b     // Deep indigo
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
   background-attachment: fixed;
   color: $text-primary;
   overflow: hidden;
   position: relative;
   
+  // Aurora/glow effect overlay
   &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    right: -50%;
+    bottom: -50%;
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.3), transparent 40%),
+      radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.35), transparent 45%),
+      radial-gradient(circle at 40% 80%, rgba(217, 70, 239, 0.25), transparent 40%),
+      radial-gradient(circle at 70% 70%, rgba(168, 85, 247, 0.2), transparent 35%);
+    pointer-events: none;
+    z-index: 0;
+    animation: auroraMove 20s ease-in-out infinite;
+  }
+  
+  // Subtle noise texture for depth
+  &::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
-      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.25), transparent 40%),
-      radial-gradient(circle at 80% 30%, rgba(139, 92, 246, 0.2), transparent 40%),
-      radial-gradient(circle at 40% 80%, rgba(168, 85, 247, 0.15), transparent 40%);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
     pointer-events: none;
     z-index: 0;
   }
@@ -102,9 +180,46 @@ h4 {
 }
 
 // Resizable Panels
-.resizable-panel>div {
+[data-panel-group] {
+  height: 100% !important;
+  width: 100% !important;
+  overflow: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.resizable-panel {
   height: 100%;
-  overflow: auto;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 0 !important;
+  padding: 0 !important;
+  
+  > div {
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+    margin: 0;
+    padding: 0;
+  }
+  
+  // Ensure iframe fills completely
+  iframe {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+}
+
+// Target the last panel specifically (VS Code panel)
+[data-panel-group] > [data-panel]:last-of-type {
+  margin-right: 0 !important;
+  padding-right: 0 !important;
 }
 
 .panel-resize-handle {

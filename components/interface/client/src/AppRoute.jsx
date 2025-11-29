@@ -5,12 +5,10 @@ import { ExternalContentPanel } from "./components/ExternalContentPanel/External
 
 export default function AppRoute() {
   return (
-    <>
-      <PanelGroup direction="horizontal" autoSaveId="persistence">
-        <Panel defaultSize={50} minSize={20} className="resizable-panel">
-          <div className="overflow-auto position-relative">
-            <ChatPanel />
-          </div>
+    <div style={{ width: '100%', height: '100%', display: 'flex', overflow: 'hidden' }}>
+      <PanelGroup direction="horizontal" autoSaveId="persistence" style={{ width: '100%', height: '100%', flex: 1, overflow: 'hidden' }}>
+        <Panel defaultSize={50} minSize={20} className="resizable-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+          <ChatPanel />
         </Panel>
         <PanelResizeHandle className="panel-resize-handle">
           <svg viewBox="0 0 24 24" data-direction="horizontal">
@@ -23,12 +21,13 @@ export default function AppRoute() {
         <Panel
           defaultSize={50}
           minSize={20}
-          className="resizable-panel d-flex"
+          className="resizable-panel"
+          style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}
         >
           <ExternalContentPanel />
         </Panel>
       </PanelGroup>
       <ToastContainer position="bottom-right" theme="dark" />
-    </>
+    </div>
   );
 }

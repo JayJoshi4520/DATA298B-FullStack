@@ -29,8 +29,11 @@ export const apiLimiter = rateLimit({
     });
   },
   skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === '/api/health' || req.path === '/healthz';
+    // Skip rate limiting for health checks and frequent polling endpoints
+    return req.path === '/api/health' || 
+           req.path === '/healthz' ||
+           req.path.includes('/memory/sessions') ||
+           req.path.includes('/memory/stats');
   },
 });
 

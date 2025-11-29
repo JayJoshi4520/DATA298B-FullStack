@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useChat } from "../../ChatContext";
 import { MessageComponent } from "./MessageComponent";
 import { Badge, Card, ProgressBar, Button } from "react-bootstrap";
+import { ThinkingIndicator } from "./LoadingSkeleton";
 
 // Agent Progress Panel Component
 function AgentProgressPanel() {
@@ -344,7 +345,7 @@ function AgentProgressPanel() {
 }
 
 export function ChatBody() {
-   const { messages, isLoading, mode, sendMessage } = useChat();
+   const { messages, isLoading, mode, sendMessage, agentActivity } = useChat();
   const chatBodyRef = useRef(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [exampleSet, setExampleSet] = useState(0);
@@ -407,7 +408,10 @@ export function ChatBody() {
   }, [mode, exampleSet]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll within the chat body container only, not the entire page
+    if (chatBodyRef.current) {
+      chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+    }
   }, [messages]);
 
   // Search functionality
@@ -535,7 +539,17 @@ export function ChatBody() {
   }
 
   return (
-    <div className="chat-body flex-grow-1" style={{ overflowY: "auto" }}>
+    <div 
+      ref={chatBodyRef}
+      className="chat-body" 
+      style={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
       {/* Search Bar */}
       {messages.length > 0 && (
         <div className="p-3 pb-2" style={{ 
@@ -605,8 +619,14 @@ export function ChatBody() {
           ))
         )}
 
-        {/* Agent Progress Panel - Shows real-time agent activity (replaces "Thinking...") */}
-        {isLoading && <AgentProgressPanel />}
+        {/* Loading indicators */}
+        {isLoading && (
+          agentActivity.length > 0 ? (
+            <AgentProgressPanel />
+          ) : (
+            <ThinkingIndicator />
+          )
+        )}
 
         <div ref={messagesEndRef} />
       </div>

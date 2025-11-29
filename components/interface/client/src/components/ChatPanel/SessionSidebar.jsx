@@ -10,6 +10,33 @@ const formatDate = (dateStr) => {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 };
 
+// Generate a display name from session
+const getSessionDisplayName = (session) => {
+  // If already has a proper name, use it
+  if (session.name && session.name !== 'New Chat') {
+    return session.name;
+  }
+  
+  // Try to get name from first user message
+  const firstUserMsg = session.messages?.find(m => m.role === 'user');
+  if (firstUserMsg?.content) {
+    const content = firstUserMsg.content;
+    // Truncate and clean up
+    let title = content
+      .replace(/^(hi|hello|hey|please|can you|could you|i want to|i need to)\s*/i, '')
+      .replace(/[.!?]+$/, '')
+      .trim();
+    
+    if (title.length > 40) {
+      title = title.substring(0, 37) + '...';
+    }
+    
+    return title.charAt(0).toUpperCase() + title.slice(1) || 'New Chat';
+  }
+  
+  return 'New Chat';
+};
+
 export function SessionSidebar({ show, onHide }) {
   const { sessions, loadSession, deleteSession, renameSession, currentSessionId } = useChat();
   const [editingId, setEditingId] = useState(null);
@@ -25,7 +52,7 @@ export function SessionSidebar({ show, onHide }) {
 
   const startEdit = (session) => {
     setEditingId(session.id);
-    setEditName(session.name);
+    setEditName(getSessionDisplayName(session));
   };
 
   return (
@@ -92,7 +119,7 @@ export function SessionSidebar({ show, onHide }) {
                 ) : (
                   <div onClick={() => loadSession(session)}>
                     <div className="d-flex justify-content-between align-items-start mb-1">
-                      <strong style={{ fontSize: '0.95em' }}>{session.name}</strong>
+                      <strong style={{ fontSize: '0.95em' }}>{getSessionDisplayName(session)}</strong>
                       <Badge bg="info" style={{ fontSize: '0.7em' }}>
                         {session.messages?.length || 0} msgs
                       </Badge>
@@ -122,7 +149,7 @@ export function SessionSidebar({ show, onHide }) {
                       variant="outline-danger"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`Delete "${session.name}"?`)) {
+                        if (window.confirm(`Delete "${getSessionDisplayName(session)}"?`)) {
                           deleteSession(session.id);
                         }
                       }}
