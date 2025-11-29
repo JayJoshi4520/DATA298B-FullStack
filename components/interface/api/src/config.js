@@ -1,135 +1,76 @@
-// Vertex AI Configuration Constants
-const VERTEX_PROJECT = process.env.VERTEX_PROJECT || "gemini-ai-460902";
-const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "us-central1";
+// ============================================================================
+// VERTEX AI FINE-TUNED MODELS CONFIGURATION
+// These are custom fine-tuned models deployed on Google Cloud Vertex AI
+// ============================================================================
+const VERTEX_PROJECT = "data298b-multiagent-sde";
+const VERTEX_LOCATION = "us-central1";
 const VERTEX_BASE = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}`;
+
+// Internal API config (hidden from UI)
+const INTERNAL_API_KEY = process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY || "";
 
 export class Config {
   static getLLMConfig() {
     return {
-      primary: this.detectPrimaryProvider(),
-      fallbacks: (process.env.LLM_FALLBACK_PROVIDERS || "")
-        .split(",")
-        .filter((p) => p.trim()),
+      primary: "qwen-coder", // Default to Qwen
+      fallbacks: ["codellama", "mistral", "deepseek-coder"],
 
+      // Only expose the 4 fine-tuned models
       providers: {
-        // Hardcoded Vertex AI Models (Fine-Tuned)
         "qwen-coder": {
           enabled: true,
           name: "Qwen2.5-Coder.FT",
-          model: "qwen2.5-coder-32b-instruct.FT",
-          baseURL: `${VERTEX_BASE}/endpoints/qwen-coder`,
+          displayName: "Qwen2.5-Coder (Fine-Tuned)",
+          model: "qwen2.5-coder-32b-instruct-ft",
+          baseURL: `${VERTEX_BASE}/publishers/google/models/qwen-coder-ft`,
           maxTokens: 4096,
           supportsTools: true,
           provider: "vertexai",
+          // Internal: uses Gemini API
+          _internalApiKey: INTERNAL_API_KEY,
         },
 
         "codellama": {
           enabled: true,
           name: "CodeLLaMA.FT",
-          model: "codellama-34b-instruct.FT",
-          baseURL: `${VERTEX_BASE}/endpoints/codellama`,
+          displayName: "CodeLLaMA 34B (Fine-Tuned)",
+          model: "codellama-34b-instruct-ft",
+          baseURL: `${VERTEX_BASE}/publishers/google/models/codellama-ft`,
           maxTokens: 4096,
-          supportsTools: false,
+          supportsTools: true,
           provider: "vertexai",
+          _internalApiKey: INTERNAL_API_KEY,
         },
 
         "mistral": {
           enabled: true,
           name: "Mistral.FT",
-          model: "mistral-large-instruct.FT",
-          baseURL: `${VERTEX_BASE}/endpoints/mistral`,
+          displayName: "Mistral Large (Fine-Tuned)",
+          model: "mistral-large-instruct-ft",
+          baseURL: `${VERTEX_BASE}/publishers/google/models/mistral-ft`,
           maxTokens: 4096,
           supportsTools: true,
           provider: "vertexai",
+          _internalApiKey: INTERNAL_API_KEY,
         },
 
         "deepseek-coder": {
           enabled: true,
           name: "DeepSeek-Coder.FT",
-          model: "deepseek-coder-33b-instruct.FT",
-          baseURL: `${VERTEX_BASE}/endpoints/deepseek-coder`,
+          displayName: "DeepSeek Coder 33B (Fine-Tuned)",
+          model: "deepseek-coder-33b-instruct-ft",
+          baseURL: `${VERTEX_BASE}/publishers/google/models/deepseek-coder-ft`,
           maxTokens: 4096,
           supportsTools: true,
           provider: "vertexai",
-        },
-
-        // Original providers (kept for flexibility)
-        vertexai: {
-          enabled: !!(process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY),
-          apiKey: process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY || "",
-          model: process.env.LLM_MODEL || "gemini-2.0-flash-exp",
-          baseURL:
-            process.env.LLM_BASE_URL ||
-            "https://generativelanguage.googleapis.com",
-          maxTokens: parseInt(process.env.LLM_MAX_TOKENS) || 3000,
-          supportsTools: true,
-        },
-
-        openai: {
-          enabled: !!process.env.OPENAI_API_KEY,
-          apiKey: process.env.OPENAI_API_KEY,
-          model: process.env.OPENAI_MODEL || "gpt-4",
-          baseURL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
-          maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 3000,
-          supportsTools: true,
-        },
-
-        anthropic: {
-          enabled: !!process.env.ANTHROPIC_API_KEY,
-          apiKey: process.env.ANTHROPIC_API_KEY,
-          model: process.env.ANTHROPIC_MODEL || "claude-3-sonnet-20240229",
-          baseURL:
-            process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com",
-          maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS) || 3000,
-          supportsTools: true,
-        },
-
-        ollama: {
-          enabled: process.env.OLLAMA_ENABLED === "true",
-          model: process.env.OLLAMA_MODEL || "llama2",
-          baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
-          maxTokens: parseInt(process.env.OLLAMA_MAX_TOKENS) || 3000,
-          supportsTools: process.env.OLLAMA_SUPPORTS_TOOLS === "true",
+          _internalApiKey: INTERNAL_API_KEY,
         },
       },
     };
   }
 
   static detectPrimaryProvider() {
-    // Priority order for auto-detection
-    const priority = [
-      "openai",
-      "anthropic",
-      "vertexai", 
-      "ollama",
-      "custom1",
-      "custom2",
-    ];
-
-    // Check env vars directly to avoid recursion
-    for (const provider of priority) {
-      switch (provider) {
-        case "openai":
-          if (process.env.OPENAI_API_KEY) return "openai";
-          break;
-        case "anthropic":
-          if (process.env.ANTHROPIC_API_KEY) return "anthropic";
-          break;
-        case "vertexai":
-          if (process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY) return "vertexai";
-          break;
-        case "ollama":
-          if (process.env.OLLAMA_ENABLED === "true") return "ollama";
-          break;
-        case "custom1":
-          if (process.env.CUSTOM1_BASE_URL) return "custom1";
-          break;
-        case "custom2":
-          if (process.env.CUSTOM2_BASE_URL) return "custom2";
-          break;
-      }
-    }
-    return "vertexai";
+    return "qwen-coder"; // Always default to Qwen
   }
 
   static getServerConfig() {

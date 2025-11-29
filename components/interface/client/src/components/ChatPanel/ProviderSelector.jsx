@@ -59,19 +59,10 @@ export function ProviderSelector() {
   };
 
   const getProviderDisplayName = (providerName, info) => {
-    // Use the name property if available, otherwise format the key
+    // Use displayName or name from API response
+    if (info?.displayName) return info.displayName;
     if (info?.name) return info.name;
-    const displayNames = {
-      "qwen-coder": "Qwen2.5-Coder",
-      "codellama": "CodeLLaMA",
-      "mistral": "Mistral",
-      "deepseek-coder": "DeepSeek-Coder",
-      "vertexai": "Vertex AI (Gemini)",
-      "openai": "OpenAI",
-      "anthropic": "Anthropic",
-      "ollama": "Ollama",
-    };
-    return displayNames[providerName] || providerName;
+    return providerName;
   };
 
   const availableProviders = Object.keys(providers);
