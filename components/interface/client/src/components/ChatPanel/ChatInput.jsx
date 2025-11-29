@@ -139,27 +139,46 @@ export function ChatInput() {
 
   return (
     <div className="chat-input border-top p-3">
-      {/* Context Awareness Indicator */}
+      {/* Context Info Panel */}
       {(mode === 'agent' || mode === 'ask') && contextFiles.length > 0 && (
-        <div className="mb-2 p-2" style={{
-          background: 'rgba(99, 102, 241, 0.1)',
-          borderRadius: '8px',
-          border: '1px solid rgba(99, 102, 241, 0.3)'
+        <div className="context-panel mb-2 p-3" style={{
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)',
+          borderRadius: '12px',
+          border: '1px solid rgba(139, 92, 246, 0.3)',
+          backdropFilter: 'blur(8px)',
         }}>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <div className="d-flex align-items-center gap-2">
-              <span style={{ fontSize: '0.85em', color: 'rgba(255, 255, 255, 0.8)' }}>
-                📁 <strong>{contextFiles.length}</strong> files in context
+              <span style={{ 
+                fontSize: '0.85em', 
+                color: 'rgba(255, 255, 255, 0.9)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}>
+                <span style={{
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  fontSize: '0.75em',
+                }}>📁 {contextFiles.length}</span>
+                files in context
               </span>
               <OverlayTrigger
                 placement="top"
                 overlay={<Tooltip>Context includes files the AI can see and reference</Tooltip>}
               >
-                <span style={{ cursor: 'help', fontSize: '0.85em' }}>ℹ️</span>
+                <span style={{ cursor: 'help', fontSize: '0.75em', opacity: 0.6 }}>ⓘ</span>
               </OverlayTrigger>
             </div>
-            <span style={{ fontSize: '0.75em', color: 'rgba(255, 255, 255, 0.6)' }}>
-              {contextSize} / {maxContextSize} tokens
+            <span style={{ 
+              fontSize: '0.75em', 
+              color: 'rgba(255, 255, 255, 0.7)',
+              background: 'rgba(255, 255, 255, 0.1)',
+              padding: '2px 8px',
+              borderRadius: '10px',
+            }}>
+              {contextSize.toLocaleString()} / {maxContextSize.toLocaleString()} tokens
             </span>
           </div>
 
@@ -167,25 +186,45 @@ export function ChatInput() {
           <ProgressBar
             now={(contextSize / maxContextSize) * 100}
             variant={contextSize > maxContextSize * 0.8 ? 'warning' : 'info'}
-            style={{ height: '4px', marginBottom: '8px' }}
+            style={{ 
+              height: '4px', 
+              marginBottom: '10px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '2px',
+            }}
           />
 
           {/* File Badges */}
-          <div className="d-flex flex-wrap gap-1">
+          <div className="d-flex flex-wrap gap-2">
             {contextFiles.map((file, idx) => (
-              <Badge
+              <div
                 key={idx}
-                bg="primary"
                 style={{
-                  fontSize: '0.7em',
-                  padding: '4px 8px',
-                  background: 'rgba(99, 102, 241, 0.3)',
-                  border: '1px solid rgba(99, 102, 241, 0.5)'
+                  fontSize: '0.75em',
+                  padding: '6px 10px',
+                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.2) 100%)',
+                  border: '1px solid rgba(139, 92, 246, 0.4)',
+                  borderRadius: '8px',
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                  cursor: 'default',
                 }}
               >
-                📄 {file.name}
-                <span style={{ opacity: 0.6, marginLeft: '4px' }}>({file.size}t)</span>
-              </Badge>
+                <span style={{ fontSize: '1em' }}>📄</span>
+                <span style={{ fontWeight: 500 }}>{file.name}</span>
+                <span style={{ 
+                  opacity: 0.6, 
+                  fontSize: '0.9em',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                }}>
+                  {file.size >= 1000 ? `${(file.size / 1000).toFixed(1)}k` : file.size}
+                </span>
+              </div>
             ))}
           </div>
         </div>
@@ -266,9 +305,17 @@ export function ChatInput() {
                     e.preventDefault();
                     setShowMentionDropdown(false);
                   }
-                } else if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
+                } else if (e.key === 'Enter') {
+                  // Cmd+Enter or Ctrl+Enter always sends
+                  if (e.metaKey || e.ctrlKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                  // Plain Enter also sends (Shift+Enter for new line)
+                  else if (!e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
                 }
               }}
               placeholder={getPlaceholder()}
@@ -368,8 +415,8 @@ export function ChatInput() {
             {showMentionDropdown && ` • @ mention active (${mentionFiles.length} files)`}
           </small>
           <small className="text-muted">
-            {recognition && '🎤 Voice input available • '}
-            Type @ for file picker • Press Enter to send
+            {recognition && '🎤 Voice • '}
+            @ files • ⌘↵ or Enter to send • ⇧↵ new line
           </small>
         </div>
       </form>

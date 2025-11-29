@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { Offcanvas, ListGroup, Button, Badge, Form, ButtonGroup } from 'react-bootstrap';
 import { useChat } from '../../ChatContext';
 
+// Helper to safely format dates
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'Just now';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return 'Just now';
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+};
+
 export function SessionSidebar({ show, onHide }) {
   const { sessions, loadSession, deleteSession, renameSession, currentSessionId } = useChat();
   const [editingId, setEditingId] = useState(null);
@@ -21,14 +29,30 @@ export function SessionSidebar({ show, onHide }) {
   };
 
   return (
-    <Offcanvas show={show} onHide={onHide} placement="start" style={{ width: '350px' }}>
-      <Offcanvas.Header closeButton style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
-        <Offcanvas.Title>📚 Chat Sessions</Offcanvas.Title>
+    <Offcanvas show={show} onHide={onHide} placement="start" style={{ 
+      width: '350px',
+      background: 'linear-gradient(180deg, rgba(30, 27, 75, 0.98) 0%, rgba(49, 46, 129, 0.98) 100%)',
+      backdropFilter: 'blur(20px)',
+    }}>
+      <Offcanvas.Header closeButton style={{ 
+        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
+        <Offcanvas.Title style={{ 
+          fontWeight: 700, 
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          📚 Chat Sessions
+        </Offcanvas.Title>
       </Offcanvas.Header>
-      <Offcanvas.Body style={{ padding: 0 }}>
+      <Offcanvas.Body style={{ padding: 0, background: 'transparent' }}>
         {sessions.length === 0 ? (
-          <div className="p-4 text-center text-muted">
-            <p>💭 No saved sessions yet</p>
+          <div className="p-4 text-center" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>💭</div>
+            <p style={{ fontWeight: 500, color: 'rgba(255, 255, 255, 0.8)' }}>No saved sessions yet</p>
             <small>Start chatting to create your first session!</small>
           </div>
         ) : (
@@ -38,7 +62,17 @@ export function SessionSidebar({ show, onHide }) {
                 key={session.id}
                 active={session.id === currentSessionId}
                 className="d-flex flex-column"
-                style={{ cursor: 'pointer', borderLeft: session.id === currentSessionId ? '3px solid #6366f1' : 'none' }}
+                style={{ 
+                  cursor: 'pointer', 
+                  borderLeft: session.id === currentSessionId ? '3px solid #8b5cf6' : '3px solid transparent',
+                  background: session.id === currentSessionId 
+                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)' 
+                    : 'rgba(255, 255, 255, 0.02)',
+                  border: 'none',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                  color: 'white',
+                  transition: 'all 0.2s ease',
+                }}
               >
                 {editingId === session.id ? (
                   <Form.Group className="mb-2">
@@ -65,7 +99,7 @@ export function SessionSidebar({ show, onHide }) {
                     </div>
                     <div className="d-flex justify-content-between align-items-center">
                       <small className="text-muted" style={{ fontSize: '0.75em' }}>
-                        {new Date(session.updatedAt).toLocaleDateString()} {new Date(session.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatDate(session.updatedAt || session.createdAt)}
                       </small>
                       <Badge bg="secondary" style={{ fontSize: '0.7em' }}>{session.mode}</Badge>
                     </div>

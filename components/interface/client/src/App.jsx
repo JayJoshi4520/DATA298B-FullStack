@@ -7,6 +7,7 @@ import MainLayout from "./components/Layout/MainLayout";
 import { ChatContextProvider } from "./ChatContext";
 import { TabContextProvider } from "./TabContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import Login from "./components/Login";
 
 function PrivateRoute({ children }) {
@@ -17,10 +18,11 @@ function PrivateRoute({ children }) {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ChatContextProvider>
-          <TabContextProvider>
-            <Routes>
+      <ThemeProvider>
+        <AuthProvider>
+          <ChatContextProvider>
+            <TabContextProvider>
+              <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/*" element={
                 <PrivateRoute>
@@ -34,9 +36,10 @@ function App() {
                 </PrivateRoute>
               } />
             </Routes>
-          </TabContextProvider>
-        </ChatContextProvider>
-      </AuthProvider>
+            </TabContextProvider>
+          </ChatContextProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

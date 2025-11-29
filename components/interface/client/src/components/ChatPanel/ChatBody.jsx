@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "../../ChatContext";
 import { MessageComponent } from "./MessageComponent";
-import { Badge, Card } from "react-bootstrap";
+import { Badge, Card, ProgressBar, Button } from "react-bootstrap";
 
 // Agent Progress Panel Component
 function AgentProgressPanel() {
-  const { agentActivity, activeAgent, isLoading } = useChat();
+  const { agentActivity, activeAgent, isLoading, stopStream, pipelineProgress, tokenUsage } = useChat();
   const [displayedActivities, setDisplayedActivities] = useState([]);
 
   useEffect(() => {
@@ -19,13 +19,30 @@ function AgentProgressPanel() {
 
   const getAgentIcon = (agentName) => {
     const icons = {
+      BusinessAnalystAgent: "🤖",
+      BusinessAnalyst: "🤖",
       CodeWriterAgent: "✍️",
+      CodeWriter: "✍️",
       CodeReviewerAgent: "🔍",
+      CodeReviewer: "🔍",
       CodeRefactorerAgent: "🔧",
+      CodeRefactorer: "🔧",
       FileSaverAgent: "💾",
+      FileSaver: "💾",
       CodeExecutorAgent: "▶️",
+      TestingAgent: "🧪",
+      Testing: "🧪",
+      ProjectExecutorAgent: "🚀",
+      SyntaxValidatorAgent: "✅",
     };
-    return icons[agentName] || "🤖";
+    // Try exact match first
+    if (icons[agentName]) return icons[agentName];
+    // Try partial match
+    const name = agentName || '';
+    for (const [key, icon] of Object.entries(icons)) {
+      if (name.includes(key.replace('Agent', ''))) return icon;
+    }
+    return "🤖";
   };
 
   const getToolIcon = (toolName) => {
@@ -36,8 +53,25 @@ function AgentProgressPanel() {
       create_directory: "📁",
       delete_file: "🗑️",
       execute_code: "⚡",
+      filesystem_tool: "📁",
+      search: "🔍",
     };
-    return icons[toolName] || "🔧";
+    const name = (toolName || '').toLowerCase();
+    for (const [key, icon] of Object.entries(icons)) {
+      if (name.includes(key)) return icon;
+    }
+    return "🛠️";
+  };
+
+  const formatToolName = (toolName) => {
+    if (!toolName || toolName === 'unknown_tool') return 'Filesystem Operation';
+    return toolName
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .trim()
+      .split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
   };
 
   const formatAgentName = (name) => {
@@ -46,96 +80,261 @@ function AgentProgressPanel() {
 
   return (
     <Card className="mb-3" style={{
-      background: "linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%)",
-      border: "2px solid rgba(99, 102, 241, 0.5)",
-      borderRadius: "16px",
-      boxShadow: "0 8px 24px rgba(99, 102, 241, 0.3)",
-      animation: "pulse 2s ease-in-out infinite"
+      background: "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.2) 50%, rgba(168, 85, 247, 0.15) 100%)",
+      border: "1px solid rgba(99, 102, 241, 0.4)",
+      borderRadius: "20px",
+      boxShadow: "0 8px 32px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+      backdropFilter: "blur(12px)",
     }}>
-      <Card.Body>
+      <Card.Body className="p-4">
+        {/* Header with Stop Button */}
         <div className="d-flex align-items-center justify-content-between mb-3">
-          <div className="d-flex align-items-center">
-            <h5 className="mb-0 me-2" style={{ color: "rgba(255, 255, 255, 0.98)", fontWeight: 700 }}>
-              🤖 ADK Agents Working
-            </h5>
+          <div className="d-flex align-items-center gap-3">
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.3rem',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+            }}>
+              🤖
+            </div>
+            <div>
+              <h5 className="mb-0" style={{ color: "rgba(255, 255, 255, 0.98)", fontWeight: 700, fontSize: '1.1rem' }}>
+                ADK Agents Working
+              </h5>
+              <small style={{ color: 'rgba(255, 255, 255, 0.6)' }}>AI agents collaborating on your request</small>
+            </div>
+          </div>
+          <div className="d-flex align-items-center gap-2">
             {activeAgent && (
-              <Badge bg="success" className="d-flex align-items-center gap-1" style={{ fontSize: "0.9rem", padding: "0.5rem 0.75rem" }}>
-                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <Badge style={{ 
+                background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                border: 'none',
+                fontSize: "0.85rem", 
+                padding: "0.5rem 1rem",
+                borderRadius: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: '0.8rem', height: '0.8rem' }}></span>
                 {getAgentIcon(activeAgent)} {formatAgentName(activeAgent)}
               </Badge>
             )}
+            {isLoading && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => stopStream()}
+                style={{
+                  borderRadius: '20px',
+                  padding: '0.4rem 1rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                }}
+              >
+                ⏹️ Stop
+              </Button>
+            )}
           </div>
-          {isLoading && (
-            <div className="spinner-border text-light" role="status" style={{ width: "1.5rem", height: "1.5rem" }}>
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          )}
         </div>
 
-        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-          {displayedActivities.map((activity, idx) => (
-            <div
-              key={idx}
-              className="d-flex align-items-start mb-2 p-2"
-              style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                borderRadius: "8px",
-                borderLeft: "3px solid rgba(99, 102, 241, 0.5)",
-                transition: "all 0.3s ease",
-              }}
-            >
-              <div className="me-2" style={{ fontSize: "1.2rem" }}>
-                {getAgentIcon(activity.agent)}
-              </div>
-              <div className="flex-grow-1">
-                <div className="d-flex align-items-center mb-1">
-                  <strong style={{ color: "rgba(255, 255, 255, 0.9)", fontSize: "0.9rem" }}>
-                    {formatAgentName(activity.agent)}
-                  </strong>
-                  <small className="ms-2" style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: "0.75rem" }}>
-                    {new Date(activity.timestamp).toLocaleTimeString()}
-                  </small>
-                </div>
-                <div style={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "0.85rem" }}>
-                  {activity.action === "started" && (
-                    <span>🟢 Started working</span>
-                  )}
-                  {activity.action === "using_tool" && (
-                    <span>
-                      {getToolIcon(activity.tool)} Using tool: <Badge bg="info" className="ms-1">{activity.tool}</Badge>
-                    </span>
-                  )}
-                  {activity.action === "output" && (
-                    <div>
-                      <span>💬 Generated output</span>
-                      {activity.text && (
-                        <div
-                          className="mt-1 p-2"
-                          style={{
-                            background: "rgba(0, 0, 0, 0.2)",
-                            borderRadius: "4px",
-                            fontSize: "0.8rem",
-                            color: "rgba(255, 255, 255, 0.7)",
-                            maxHeight: "60px",
-                            overflowY: "auto",
-                          }}
-                        >
-                          {activity.text}
-                          {activity.is_partial && <span className="ms-1">...</span>}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
+        {/* Progress Bar */}
         {isLoading && (
-          <div className="text-center mt-2">
-            <small style={{ color: "rgba(255, 255, 255, 0.7)" }}>
-              ⏳ Agents are working on your request...
+          <div className="mb-3">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <small style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                {pipelineProgress.current === 0 
+                  ? '🚀 Starting pipeline...' 
+                  : `Step ${pipelineProgress.current} of ${pipelineProgress.total}`}
+              </small>
+              <small style={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 600 }}>
+                {pipelineProgress.percentage}%
+              </small>
+            </div>
+            <ProgressBar
+              now={pipelineProgress.percentage || 5}
+              variant="info"
+              animated
+              style={{
+                height: '8px',
+                borderRadius: '4px',
+                background: 'rgba(255, 255, 255, 0.1)',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Token Usage (shown after completion) */}
+        {!isLoading && tokenUsage.total > 0 && (
+          <div className="mb-3 p-2" style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '8px',
+            fontSize: '0.8rem',
+          }}>
+            <div className="d-flex justify-content-between" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+              <span>📊 Tokens: {tokenUsage.total.toLocaleString()}</span>
+              <span>💰 Est. Cost: ${tokenUsage.estimatedCost}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Agent Conversation View */}
+        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+          {displayedActivities.map((activity, idx) => {
+            const prevActivity = displayedActivities[idx - 1];
+            const isNewAgent = !prevActivity || prevActivity.agent !== activity.agent;
+            
+            return (
+              <div
+                key={idx}
+                className={`d-flex align-items-start mb-2 p-2 ${isNewAgent ? 'mt-3' : ''}`}
+                style={{
+                  background: activity.action === "output" 
+                    ? "linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)"
+                    : "rgba(255, 255, 255, 0.03)",
+                  borderRadius: "12px",
+                  borderLeft: activity.action === "started" 
+                    ? "3px solid #10b981" 
+                    : activity.action === "using_tool"
+                    ? "3px solid #f59e0b"
+                    : "3px solid #6366f1",
+                  transition: "all 0.3s ease",
+                  animation: idx === displayedActivities.length - 1 ? "fadeIn 0.3s ease" : "none",
+                }}
+              >
+                {/* Agent Avatar */}
+                <div 
+                  className="me-3" 
+                  style={{ 
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "10px",
+                    background: activity.action === "started"
+                      ? "linear-gradient(135deg, #10b981 0%, #06b6d4 100%)"
+                      : "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "1.1rem",
+                    flexShrink: 0,
+                  }}
+                >
+                  {getAgentIcon(activity.agent)}
+                </div>
+                
+                <div className="flex-grow-1">
+                  {/* Agent Name & Timestamp */}
+                  <div className="d-flex align-items-center mb-1">
+                    <strong style={{ 
+                      color: "rgba(255, 255, 255, 0.95)", 
+                      fontSize: "0.9rem",
+                      background: "linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}>
+                      {formatAgentName(activity.agent)}
+                    </strong>
+                    <Badge 
+                      bg={activity.action === "started" ? "success" : activity.action === "using_tool" ? "warning" : "primary"}
+                      className="ms-2"
+                      style={{ fontSize: "0.65rem", padding: "0.2rem 0.4rem" }}
+                    >
+                      {activity.action === "started" ? "Starting" : activity.action === "using_tool" ? "Tool" : "Output"}
+                    </Badge>
+                    <small className="ms-auto" style={{ color: "rgba(255, 255, 255, 0.4)", fontSize: "0.7rem" }}>
+                      {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </small>
+                  </div>
+                  
+                  {/* Activity Content */}
+                  <div style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: "0.85rem" }}>
+                    {activity.action === "started" && (
+                      <div className="d-flex align-items-center">
+                        <span className="me-2">👋</span>
+                        <span style={{ fontStyle: "italic" }}>
+                          "I'm taking over from here. Let me {activity.description || 'work on this'}..."
+                        </span>
+                      </div>
+                    )}
+                    {activity.action === "using_tool" && (
+                      <div className="d-flex align-items-center flex-wrap gap-1">
+                        <span>{getToolIcon(activity.tool)}</span>
+                        <span style={{ fontStyle: "italic" }}>
+                          "Using <Badge bg="info" style={{ fontSize: "0.75rem" }}>{formatToolName(activity.tool)}</Badge> to process the code..."
+                        </span>
+                      </div>
+                    )}
+                    {activity.action === "output" && (
+                      <div>
+                        <span className="me-1">💬</span>
+                        {activity.text && (
+                          <div
+                            className="mt-2 p-2"
+                            style={{
+                              background: "rgba(0, 0, 0, 0.2)",
+                              borderRadius: "8px",
+                              fontSize: "0.8rem",
+                              color: "rgba(255, 255, 255, 0.8)",
+                              maxHeight: "80px",
+                              overflowY: "auto",
+                              fontFamily: "monospace",
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {activity.text.length > 200 
+                              ? activity.text.substring(0, 200) + "..." 
+                              : activity.text}
+                            {activity.is_partial && <span className="ms-1 text-info">⏳</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Typing Indicator */}
+        {isLoading && (
+          <div className="d-flex align-items-center mt-3 p-2" style={{
+            background: "rgba(255, 255, 255, 0.03)",
+            borderRadius: "12px",
+          }}>
+            <div className="d-flex align-items-center gap-1 me-2">
+              <div className="typing-dot" style={{
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                background: "#6366f1",
+                animation: "pulse 1s infinite",
+              }}></div>
+              <div className="typing-dot" style={{
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                background: "#8b5cf6",
+                animation: "pulse 1s infinite 0.2s",
+              }}></div>
+              <div className="typing-dot" style={{
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                background: "#a78bfa",
+                animation: "pulse 1s infinite 0.4s",
+              }}></div>
+            </div>
+            <small style={{ color: "rgba(255, 255, 255, 0.7)", fontStyle: "italic" }}>
+              Agents are collaborating...
             </small>
           </div>
         )}
@@ -339,24 +538,46 @@ export function ChatBody() {
     <div className="chat-body flex-grow-1" style={{ overflowY: "auto" }}>
       {/* Search Bar */}
       {messages.length > 0 && (
-        <div className="p-3 pb-2 border-bottom" style={{ position: 'sticky', top: 0, background: 'rgba(13, 17, 23, 0.95)', backdropFilter: 'blur(10px)', zIndex: 10 }}>
+        <div className="p-3 pb-2" style={{ 
+          position: 'sticky', 
+          top: 0, 
+          background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(49, 46, 129, 0.95) 100%)',
+          backdropFilter: 'blur(12px)', 
+          zIndex: 10,
+          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
+        }}>
           <div className="input-group input-group-sm">
-            <span className="input-group-text">🔍</span>
+            <span className="input-group-text" style={{
+              background: 'rgba(139, 92, 246, 0.2)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRight: 'none',
+              color: 'rgba(255, 255, 255, 0.8)',
+            }}>🔍</span>
             <input
               type="text"
               className="form-control"
               placeholder="Search in conversation..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+              style={{ 
+                background: 'rgba(139, 92, 246, 0.1)', 
+                color: 'white', 
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                borderLeft: 'none',
+              }}
             />
             {searchQuery && (
               <button 
-                className="btn btn-outline-secondary" 
+                className="btn" 
                 onClick={() => setSearchQuery('')}
                 title="Clear search"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: 'white',
+                }}
               >
-                ❌
+                ✕
               </button>
             )}
           </div>

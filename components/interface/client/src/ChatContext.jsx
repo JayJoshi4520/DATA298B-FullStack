@@ -4,6 +4,58 @@ import { useAuth } from "./contexts/AuthContext";
 
 const ChatContext = createContext();
 
+// Smart title generation from user message
+const generateSmartTitle = (content) => {
+  if (!content) return 'New Chat';
+  
+  // Common action words to look for
+  const actionPatterns = [
+    { pattern: /create\s+(?:a\s+)?(.{1,30})/i, prefix: 'Create' },
+    { pattern: /build\s+(?:a\s+)?(.{1,30})/i, prefix: 'Build' },
+    { pattern: /make\s+(?:a\s+)?(.{1,30})/i, prefix: 'Make' },
+    { pattern: /write\s+(?:a\s+)?(.{1,30})/i, prefix: 'Write' },
+    { pattern: /fix\s+(?:the\s+)?(.{1,30})/i, prefix: 'Fix' },
+    { pattern: /debug\s+(?:the\s+)?(.{1,30})/i, prefix: 'Debug' },
+    { pattern: /explain\s+(?:the\s+)?(.{1,30})/i, prefix: 'Explain' },
+    { pattern: /review\s+(?:the\s+)?(.{1,30})/i, prefix: 'Review' },
+    { pattern: /analyze\s+(?:the\s+)?(.{1,30})/i, prefix: 'Analyze' },
+    { pattern: /help\s+(?:me\s+)?(?:with\s+)?(.{1,30})/i, prefix: 'Help' },
+    { pattern: /how\s+(?:to\s+|do\s+I\s+)?(.{1,30})/i, prefix: 'How to' },
+    { pattern: /what\s+is\s+(.{1,30})/i, prefix: 'About' },
+  ];
+
+  // Try to match action patterns
+  for (const { pattern, prefix } of actionPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      let subject = match[1].trim();
+      // Clean up the subject
+      subject = subject.replace(/[.!?]$/, '').replace(/\s+/g, ' ');
+      // Capitalize first letter
+      subject = subject.charAt(0).toUpperCase() + subject.slice(1);
+      // Truncate if too long
+      if (subject.length > 35) {
+        subject = subject.substring(0, 32) + '...';
+      }
+      return `${prefix}: ${subject}`;
+    }
+  }
+
+  // Fallback: Clean up and use first part of message
+  let title = content
+    .replace(/^(hi|hello|hey|please|can you|could you|i want to|i need to)\s*/i, '')
+    .replace(/[.!?]+$/, '')
+    .trim();
+  
+  // Capitalize and truncate
+  title = title.charAt(0).toUpperCase() + title.slice(1);
+  if (title.length > 45) {
+    title = title.substring(0, 42) + '...';
+  }
+  
+  return title || 'New Chat';
+};
+
 export const ChatContextProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -14,7 +66,12 @@ export const ChatContextProvider = ({ children }) => {
   const [insights, setInsights] = useState([]);
   const [agentActivity, setAgentActivity] = useState([]);
   const [activeAgent, setActiveAgent] = useState(null);
+  const [pipelineProgress, setPipelineProgress] = useState({ current: 0, total: 5, percentage: 0 });
+  const [tokenUsage, setTokenUsage] = useState({ input: 0, output: 0, total: 0, estimatedCost: 0 });
+  const [pipelineError, setPipelineError] = useState(null);
   const sseRef = useRef(null);
+  const pipelineTimeoutRef = useRef(null);
+  const PIPELINE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
   // Session management state
   const [currentSessionId, setCurrentSessionId] = useState(null);
@@ -22,6 +79,7 @@ export const ChatContextProvider = ({ children }) => {
   const [sessionName, setSessionName] = useState("New Chat");
   const [projectPath, setProjectPath] = useState(null); // For ADK refinement
   const autoSaveTimeoutRef = useRef(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(false); // Prevent auto-save during load
 
   // Load sessions from API on mount and when user changes
   useEffect(() => {
@@ -62,11 +120,20 @@ export const ChatContextProvider = ({ children }) => {
 
   // Auto-save current session when messages change
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (messages.length === 0 || isLoadingSession) return; // Skip if loading session
 
     // Clear existing timeout
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Auto-generate smart session name from first user message if still "New Chat"
+    if (sessionName === 'New Chat' && messages.length > 0) {
+      const firstUserMsg = messages.find(m => m.role === 'user');
+      if (firstUserMsg) {
+        const autoName = generateSmartTitle(firstUserMsg.content);
+        setSessionName(autoName);
+      }
     }
 
     // Set new timeout for auto-save (debounce)
@@ -79,11 +146,32 @@ export const ChatContextProvider = ({ children }) => {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [messages]);
+  }, [messages, isLoadingSession]);
 
-  const stopStream = useCallback(() => {
+  const stopStream = useCallback(async (showToast = true) => {
+    // Close SSE connection
     try { sseRef.current?.close?.(); } catch { }
     sseRef.current = null;
+    
+    // Clear pipeline timeout
+    if (pipelineTimeoutRef.current) {
+      clearTimeout(pipelineTimeoutRef.current);
+      pipelineTimeoutRef.current = null;
+    }
+    
+    // Notify backend to cancel (fire and forget)
+    try {
+      fetch('/api/adk/cancel', { method: 'POST' }).catch(() => {});
+    } catch { }
+    
+    // Reset states
+    setActiveAgent(null);
+    setIsLoading(false);
+    setPipelineProgress({ current: 0, total: 5, percentage: 0 });
+    
+    if (showToast) {
+      toast.warning('🛑 Generation stopped');
+    }
   }, []);
 
   const sendMessage = useCallback(async (userMessage) => {
@@ -115,6 +203,18 @@ export const ChatContextProvider = ({ children }) => {
         const url = `/api/adk/stream?task=${encodeURIComponent(taskWithContext)}`;
         const ev = new EventSource(url);
         sseRef.current = ev;
+        setPipelineError(null);
+        setPipelineProgress({ current: 0, total: 5, percentage: 0 });
+        
+        // Set pipeline timeout (5 minutes max)
+        pipelineTimeoutRef.current = setTimeout(() => {
+          stopStream(false);
+          setMessages((prev) => [
+            ...prev,
+            { id: Date.now() + 1, role: "assistant", content: "⏱️ **Pipeline timed out** after 5 minutes. Please try a simpler request or check the server logs.", timestamp: new Date(), provider: "error" },
+          ]);
+          toast.error('⏱️ Pipeline timed out after 5 minutes');
+        }, PIPELINE_TIMEOUT_MS);
 
         ev.addEventListener("agent.start", (e) => {
           setProgressEvents((p) => [...p, { type: "agent.start", data: JSON.parse(e.data) }]);
@@ -135,6 +235,7 @@ export const ChatContextProvider = ({ children }) => {
           try {
             const d = JSON.parse(e.data);
             setAgentActivity([]);
+            setPipelineProgress({ current: 0, total: 5, percentage: 0 });
             setProgressEvents((p) => [...p, { type: "pipeline.start", data: d }]);
           } catch { }
         });
@@ -142,6 +243,15 @@ export const ChatContextProvider = ({ children }) => {
           try {
             const d = JSON.parse(e.data);
             setActiveAgent(d.agent);
+            
+            // Update progress based on agent
+            const agentOrder = ['BusinessAnalystAgent', 'CodeWriterAgent', 'CodeReviewerAgent', 'CodeRefactorerAgent', 'FileSaverAgent', 'TestingAgent'];
+            const agentIndex = agentOrder.findIndex(a => d.agent?.includes(a.replace('Agent', '')));
+            if (agentIndex >= 0) {
+              const progress = Math.round(((agentIndex + 1) / agentOrder.length) * 100);
+              setPipelineProgress({ current: agentIndex + 1, total: agentOrder.length, percentage: progress });
+            }
+            
             setAgentActivity((p) => [...p, {
               agent: d.agent,
               action: "started",
@@ -184,7 +294,24 @@ export const ChatContextProvider = ({ children }) => {
         ev.addEventListener("error", (e) => {
           try {
             const d = JSON.parse(e.data);
+            setPipelineError(d.error || d.message || 'Unknown error');
             setProgressEvents((p) => [...p, { type: "error", data: d }]);
+            
+            // Show user-friendly error
+            const errorMessage = d.error || d.message || 'An error occurred';
+            let friendlyMessage = '❌ ';
+            if (errorMessage.includes('API key')) {
+              friendlyMessage += 'API key issue. Please check your configuration.';
+            } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+              friendlyMessage += 'Request timed out. Try a simpler request.';
+            } else if (errorMessage.includes('rate limit')) {
+              friendlyMessage += 'Rate limit exceeded. Please wait a moment.';
+            } else if (errorMessage.includes('model')) {
+              friendlyMessage += 'Model unavailable. Check LLM configuration.';
+            } else {
+              friendlyMessage += errorMessage.substring(0, 100);
+            }
+            toast.error(friendlyMessage);
           } catch { }
         });
         ev.addEventListener("pipeline.complete", (e) => {
@@ -209,12 +336,39 @@ export const ChatContextProvider = ({ children }) => {
               ...prev,
               { id: Date.now() + 1, role: "assistant", content: combined || "✅ ADK pipeline complete.", timestamp: new Date(), provider: "ADK" },
             ]);
+            // Track token usage if available
+            if (d.usage) {
+              setTokenUsage({
+                input: d.usage.inputTokens || 0,
+                output: d.usage.outputTokens || 0,
+                total: (d.usage.inputTokens || 0) + (d.usage.outputTokens || 0),
+                estimatedCost: ((d.usage.inputTokens || 0) * 0.000001 + (d.usage.outputTokens || 0) * 0.000002).toFixed(4)
+              });
+            }
           } finally {
             setActiveAgent(null);
-            stopStream();
+            setPipelineProgress({ current: 5, total: 5, percentage: 100 });
+            if (pipelineTimeoutRef.current) {
+              clearTimeout(pipelineTimeoutRef.current);
+              pipelineTimeoutRef.current = null;
+            }
+            stopStream(false);
             setIsLoading(false);
           }
         });
+        
+        // Handle SSE errors
+        ev.onerror = (err) => {
+          console.error('SSE error:', err);
+          if (pipelineTimeoutRef.current) {
+            clearTimeout(pipelineTimeoutRef.current);
+          }
+          stopStream(false);
+          setMessages((prev) => [
+            ...prev,
+            { id: Date.now() + 1, role: "assistant", content: "❌ **Connection lost**. The pipeline may still be running on the server. Please check and try again.", timestamp: new Date(), provider: "error" },
+          ]);
+        };
       } catch (error) {
         stopStream();
         setIsLoading(false);
@@ -339,11 +493,16 @@ export const ChatContextProvider = ({ children }) => {
   }, [messages, currentSessionId, sessionName, mode, sessions]);
 
   const loadSession = useCallback((session) => {
+    setIsLoadingSession(true); // Prevent auto-save trigger
     setMessages(session.messages || []);
     setMode(session.mode || 'ask');
     setCurrentSessionId(session.id);
-    setSessionName(session.name);
+    setSessionName(session.name || 'New Chat');
+    setAgentActivity([]);
+    setInsights([]);
     toast.info(`📋 Loaded: ${session.name}`);
+    // Reset flag after a brief delay
+    setTimeout(() => setIsLoadingSession(false), 500);
   }, []);
 
   const deleteSession = useCallback(async (sessionId) => {
@@ -435,6 +594,10 @@ export const ChatContextProvider = ({ children }) => {
         agentActivity,
         activeAgent,
         stopStream,
+        // Pipeline state
+        pipelineProgress,
+        tokenUsage,
+        pipelineError,
         // Session management
         sessions,
         currentSessionId,

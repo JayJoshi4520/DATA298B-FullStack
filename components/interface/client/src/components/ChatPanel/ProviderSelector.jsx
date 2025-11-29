@@ -46,19 +46,38 @@ export function ProviderSelector() {
 
   const getProviderBadgeColor = (providerName) => {
     const colors = {
+      "qwen-coder": "info",
+      "codellama": "success",
+      "mistral": "warning",
+      "deepseek-coder": "primary",
       openai: "success",
       anthropic: "primary",
       vertexai: "warning",
       ollama: "info",
-      custom1: "secondary",
-      custom2: "secondary",
     };
     return colors[providerName] || "secondary";
   };
 
+  const getProviderDisplayName = (providerName, info) => {
+    // Use the name property if available, otherwise format the key
+    if (info?.name) return info.name;
+    const displayNames = {
+      "qwen-coder": "Qwen2.5-Coder",
+      "codellama": "CodeLLaMA",
+      "mistral": "Mistral",
+      "deepseek-coder": "DeepSeek-Coder",
+      "vertexai": "Vertex AI (Gemini)",
+      "openai": "OpenAI",
+      "anthropic": "Anthropic",
+      "ollama": "Ollama",
+    };
+    return displayNames[providerName] || providerName;
+  };
+
   const availableProviders = Object.keys(providers);
 
-  if (availableProviders.length <= 1) return null;
+  // Always show if we have any providers
+  if (availableProviders.length === 0) return null;
 
   return (
     <>
@@ -68,11 +87,10 @@ export function ProviderSelector() {
           size="sm"
           disabled={switching}
         >
-          {switching ? "🔄" : "🤖"} {currentProvider || "No Provider"}
-          {currentProvider && (
+          {switching ? "🔄" : "🤖"} {getProviderDisplayName(currentProvider, providers[currentProvider]) || "No Provider"}
+          {currentProvider && providers[currentProvider]?.model && (
             <Badge bg={getProviderBadgeColor(currentProvider)} className="ms-1">
-              {providers[currentProvider]?.model?.split("/").pop() ||
-                currentProvider}
+              {providers[currentProvider]?.model?.split("/").pop()}
             </Badge>
           )}
         </Dropdown.Toggle>
@@ -86,7 +104,7 @@ export function ProviderSelector() {
               onClick={() => switchProvider(providerName)}
             >
               <div className="d-flex justify-content-between align-items-center">
-                <span>{providerName}</span>
+                <span>{getProviderDisplayName(providerName, providers[providerName])}</span>
                 <Badge
                   bg={getProviderBadgeColor(providerName)}
                   className="ms-2"
@@ -103,32 +121,49 @@ export function ProviderSelector() {
         </Dropdown.Menu>
       </Dropdown>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>LLM Provider Configuration</Modal.Title>
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" className="provider-modal">
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', borderBottom: '1px solid rgba(139, 92, 246, 0.3)' }}>
+          <Modal.Title style={{ color: 'white' }}>🤖 LLM Provider Configuration</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)' }}>
           <div className="provider-info">
             {Object.entries(providers).map(([name, info]) => (
-              <div key={name} className="provider-card mb-3 p-3 border rounded">
-                <div className="d-flex justify-content-between align-items-center">
-                  <h5>{name}</h5>
-                  <Badge bg={getProviderBadgeColor(name)}>
-                    {currentProvider === name ? "Active" : "Available"}
+              <div 
+                key={name} 
+                className="provider-card mb-3 p-3 rounded"
+                style={{
+                  background: currentProvider === name 
+                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%)'
+                    : 'rgba(255, 255, 255, 0.05)',
+                  border: currentProvider === name 
+                    ? '2px solid rgba(139, 92, 246, 0.5)'
+                    : '1px solid rgba(255, 255, 255, 0.1)',
+                }}
+              >
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h5 style={{ color: 'white', margin: 0 }}>
+                    {getProviderDisplayName(name, info)}
+                  </h5>
+                  <Badge bg={currentProvider === name ? "success" : getProviderBadgeColor(name)}>
+                    {currentProvider === name ? "✓ Active" : "Available"}
                   </Badge>
                 </div>
-                <small className="text-muted">Model: {info.model}</small>
-                <br />
-                <small className="text-muted">Base URL: {info.baseURL}</small>
-                <br />
-                <small className="text-muted">
-                  Tools Support: {info.supportsTools ? "✅" : "❌"}
-                </small>
+                <div style={{ fontSize: '0.85rem' }}>
+                  <div className="mb-1" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                    <strong>Model:</strong> <code style={{ background: 'rgba(139, 92, 246, 0.2)', padding: '2px 6px', borderRadius: '4px' }}>{info.model || 'Not specified'}</code>
+                  </div>
+                  <div className="mb-1" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                    <strong>Base URL:</strong> <span style={{ wordBreak: 'break-all' }}>{info.baseURL || 'Not specified'}</span>
+                  </div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                    <strong>Tools Support:</strong> {info.supportsTools ? "✅ Yes" : "❌ No"}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', borderTop: '1px solid rgba(139, 92, 246, 0.3)' }}>
           <Button variant="secondary" onClick={() => setShowModal(false)}>
             Close
           </Button>

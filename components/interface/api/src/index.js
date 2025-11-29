@@ -227,6 +227,30 @@ app.get("/api/generate", async (req, res) => {
   }
 });
 
+// Track active ADK processes for cancellation
+const activeADKProcesses = new Map();
+
+// -----------------------------
+// ADK Cancel endpoint
+// -----------------------------
+app.post("/api/adk/cancel", async (req, res) => {
+  try {
+    // Cancel all active ADK processes
+    for (const [id, proc] of activeADKProcesses) {
+      try {
+        proc.kill('SIGTERM');
+        console.log(`🛑 Cancelled ADK process: ${id}`);
+      } catch (e) {
+        console.error(`Failed to kill process ${id}:`, e.message);
+      }
+    }
+    activeADKProcesses.clear();
+    res.json({ success: true, message: 'Pipeline cancellation requested' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // -----------------------------
 // ADK streaming endpoint (SSE)
 // -----------------------------

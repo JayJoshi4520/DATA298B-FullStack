@@ -1,3 +1,8 @@
+// Vertex AI Configuration Constants
+const VERTEX_PROJECT = process.env.VERTEX_PROJECT || "gemini-ai-460902";
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "us-central1";
+const VERTEX_BASE = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}`;
+
 export class Config {
   static getLLMConfig() {
     return {
@@ -7,12 +12,66 @@ export class Config {
         .filter((p) => p.trim()),
 
       providers: {
+        // Hardcoded Vertex AI Models (Fine-Tuned)
+        "qwen-coder": {
+          enabled: true,
+          name: "Qwen2.5-Coder.FT",
+          model: "qwen2.5-coder-32b-instruct.FT",
+          baseURL: `${VERTEX_BASE}/endpoints/qwen-coder`,
+          maxTokens: 4096,
+          supportsTools: true,
+          provider: "vertexai",
+        },
+
+        "codellama": {
+          enabled: true,
+          name: "CodeLLaMA.FT",
+          model: "codellama-34b-instruct.FT",
+          baseURL: `${VERTEX_BASE}/endpoints/codellama`,
+          maxTokens: 4096,
+          supportsTools: false,
+          provider: "vertexai",
+        },
+
+        "mistral": {
+          enabled: true,
+          name: "Mistral.FT",
+          model: "mistral-large-instruct.FT",
+          baseURL: `${VERTEX_BASE}/endpoints/mistral`,
+          maxTokens: 4096,
+          supportsTools: true,
+          provider: "vertexai",
+        },
+
+        "deepseek-coder": {
+          enabled: true,
+          name: "DeepSeek-Coder.FT",
+          model: "deepseek-coder-33b-instruct.FT",
+          baseURL: `${VERTEX_BASE}/endpoints/deepseek-coder`,
+          maxTokens: 4096,
+          supportsTools: true,
+          provider: "vertexai",
+        },
+
+        // Original providers (kept for flexibility)
+        vertexai: {
+          enabled: !!(process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY),
+          apiKey: process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY || "",
+          model: process.env.LLM_MODEL || "gemini-2.0-flash-exp",
+          baseURL:
+            process.env.LLM_BASE_URL ||
+            "https://generativelanguage.googleapis.com",
+          maxTokens: parseInt(process.env.LLM_MAX_TOKENS) || 3000,
+          supportsTools: true,
+        },
+
         openai: {
           enabled: !!process.env.OPENAI_API_KEY,
           apiKey: process.env.OPENAI_API_KEY,
           model: process.env.OPENAI_MODEL || "gpt-4",
           baseURL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
           maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 3000,
+          supportsTools: true,
         },
 
         anthropic: {
@@ -22,16 +81,7 @@ export class Config {
           baseURL:
             process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com",
           maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS) || 3000,
-        },
-
-        vertexai: {
-          enabled: !!(process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY),
-          apiKey: process.env.LLM_API_KEY || process.env.GOOGLE_API_KEY || "",
-          model: process.env.LLM_MODEL,
-          baseURL:
-            process.env.LLM_BASE_URL ||
-            "https://generativelanguage.googleapis.com",
-          maxTokens: parseInt(process.env.LLM_MAX_TOKENS) || 3000,
+          supportsTools: true,
         },
 
         ollama: {
@@ -40,31 +90,6 @@ export class Config {
           baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
           maxTokens: parseInt(process.env.OLLAMA_MAX_TOKENS) || 3000,
           supportsTools: process.env.OLLAMA_SUPPORTS_TOOLS === "true",
-        },
-
-        // Custom providers
-        custom1: {
-          enabled: !!process.env.CUSTOM1_BASE_URL,
-          name: process.env.CUSTOM1_NAME || "custom1",
-          apiKey: process.env.CUSTOM1_API_KEY,
-          model: process.env.CUSTOM1_MODEL,
-          baseURL: process.env.CUSTOM1_BASE_URL,
-          maxTokens: parseInt(process.env.CUSTOM1_MAX_TOKENS) || 3000,
-          supportsTools: process.env.CUSTOM1_SUPPORTS_TOOLS !== "false",
-          authHeader: process.env.CUSTOM1_AUTH_HEADER || "Authorization",
-          authPrefix: process.env.CUSTOM1_AUTH_PREFIX || "Bearer",
-        },
-
-        custom2: {
-          enabled: !!process.env.CUSTOM2_BASE_URL,
-          name: process.env.CUSTOM2_NAME || "custom2",
-          apiKey: process.env.CUSTOM2_API_KEY,
-          model: process.env.CUSTOM2_MODEL,
-          baseURL: process.env.CUSTOM2_BASE_URL,
-          maxTokens: parseInt(process.env.CUSTOM2_MAX_TOKENS) || 3000,
-          supportsTools: process.env.CUSTOM2_SUPPORTS_TOOLS !== "false",
-          authHeader: process.env.CUSTOM2_AUTH_HEADER || "Authorization",
-          authPrefix: process.env.CUSTOM2_AUTH_PREFIX || "Bearer",
         },
       },
     };

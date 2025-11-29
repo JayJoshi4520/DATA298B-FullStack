@@ -5,10 +5,9 @@
     height: 100vh;
     width: 100vw;
     overflow: hidden;
-    background: $bg-dark; // Fallback
-
-    // Ensure the global gradient from App.scss is visible if transparent
     background: transparent;
+    position: relative;
+    z-index: 1;
 }
 
 .main-content {

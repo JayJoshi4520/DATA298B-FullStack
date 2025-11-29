@@ -863,7 +863,15 @@ Be thorough and critical. If you find any issues, clearly explain what's wrong a
             # Detect tool usage from function calls in event
             if hasattr(event, 'function_calls') and event.function_calls:
                 for func_call in event.function_calls:
-                    tool_name = getattr(func_call, 'name', 'unknown_tool')
+                    # Try multiple attributes for tool name
+                    tool_name = (
+                        getattr(func_call, 'name', None) or
+                        getattr(func_call, 'function_name', None) or
+                        getattr(func_call, 'tool_name', None) or
+                        str(type(func_call).__name__)
+                    )
+                    if not tool_name or tool_name == 'NoneType':
+                        tool_name = 'write_file'  # Default for filesystem operations
                     emit_event("tool.use", {
                         "agent": current_agent or "Unknown",
                         "tool": tool_name,
@@ -874,7 +882,14 @@ Be thorough and critical. If you find any issues, clearly explain what's wrong a
             if hasattr(event, 'content') and hasattr(event.content, 'parts'):
                 for part in event.content.parts:
                     if hasattr(part, 'function_call'):
-                        tool_name = getattr(part.function_call, 'name', 'unknown_tool')
+                        fc = part.function_call
+                        tool_name = (
+                            getattr(fc, 'name', None) or
+                            getattr(fc, 'function_name', None) or
+                            str(type(fc).__name__)
+                        )
+                        if not tool_name or tool_name == 'NoneType':
+                            tool_name = 'write_file'
                         emit_event("tool.use", {
                             "agent": current_agent or "Unknown",
                             "tool": tool_name,
