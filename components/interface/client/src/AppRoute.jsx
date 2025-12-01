@@ -7,7 +7,7 @@ export default function AppRoute() {
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', overflow: 'hidden' }}>
       <PanelGroup direction="horizontal" autoSaveId="persistence" style={{ width: '100%', height: '100%', flex: 1, overflow: 'hidden' }}>
-        <Panel defaultSize={50} minSize={20} className="resizable-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <Panel defaultSize={40} minSize={20} className="resizable-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           <ChatPanel />
         </Panel>
         <PanelResizeHandle className="panel-resize-handle">
@@ -19,10 +19,10 @@ export default function AppRoute() {
           </svg>
         </PanelResizeHandle>
         <Panel
-          defaultSize={50}
-          minSize={20}
+          defaultSize={60}
+          minSize={30}
           className="resizable-panel"
-          style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}
+          style={{ display: 'flex', height: '100%', overflow: 'hidden' }}
         >
           <ExternalContentPanel />
         </Panel>

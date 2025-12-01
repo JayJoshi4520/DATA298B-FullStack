@@ -37,8 +37,8 @@ export function ChatHeader() {
       borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
       flexShrink: 0,
     }}>
-      <div className="d-flex justify-content-between align-items-center">
-        {/* Brand */}
+      <div className="d-flex justify-content-between align-items-center w-100">
+        {/* Brand - LEFT SIDE */}
         <div className="d-flex align-items-center gap-2">
           <h4 className="mb-0" style={{
             background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%)',
@@ -51,7 +51,7 @@ export function ChatHeader() {
           }}>Immortal AI</h4>
         </div>
 
-        {/* Mode Selector */}
+        {/* Mode Selector + Export - RIGHT SIDE */}
         <div className="d-flex align-items-center gap-2">
           {modeOptions.map((option) => (
             <button
@@ -100,19 +100,19 @@ export function ChatHeader() {
                 backdropFilter: 'blur(16px)',
                 border: '1px solid rgba(139, 92, 246, 0.3)',
               }}>
-                <Dropdown.Item 
+                <Dropdown.Item
                   onClick={() => exportConversation('json')}
                   style={{ color: 'white' }}
                 >
                   📄 Export as JSON
                 </Dropdown.Item>
-                <Dropdown.Item 
+                <Dropdown.Item
                   onClick={() => exportConversation('markdown')}
                   style={{ color: 'white' }}
                 >
                   📝 Export as Markdown
                 </Dropdown.Item>
-                <Dropdown.Item 
+                <Dropdown.Item
                   onClick={() => exportConversation('text')}
                   style={{ color: 'white' }}
                 >

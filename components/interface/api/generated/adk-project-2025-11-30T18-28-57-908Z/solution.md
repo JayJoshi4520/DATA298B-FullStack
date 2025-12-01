@@ -1,0 +1,7 @@
+ISSUES FOUND:
+- The frontend configuration uses `create-react-app` (`react-scripts`), which violates the review requirement: "REJECT if using Vue CLI or create-react-app without Vite". The project must be configured using Vite.
+- `frontend/vite.config.js` is missing.
+- `frontend/package.json` includes `react-scripts` instead of `vite` and `@vitejs/plugin-react`.
+- `frontend/public/index.html` is structured for Webpack/CRA. For Vite, `index.html` must be in the `frontend/` root (not `public/`) and must include the entry point script: `<script type="module" src="/src/index.js"></script>`.
+- `backend/parser.py` contains a comment indicating incomplete logic: `# Escape quotes if needed, though basic implementation just writes raw`. Production-ready code must handle escaping correctly rather than leaving a comment about it being a "basic implementation".
+- The `Dockerfile` for the frontend uses `npm start` (development server). For a production-ready artifact, this should ideally build the static assets (`npm run build`) and serve them (e.g., using `nginx` or `serve`), or the development intention should be explicitly clarified. However, the switch to Vite is a hard blocking requirement.

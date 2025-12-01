@@ -955,4 +955,3 @@ def run_pipeline(user_message: str):
 if __name__ == "__main__":
     msg = sys.argv[1] if len(sys.argv) > 1 else "Help me create something new"
     run_pipeline(msg)
-    # Results already printed to stdout in run_pipeline_async (line 930)

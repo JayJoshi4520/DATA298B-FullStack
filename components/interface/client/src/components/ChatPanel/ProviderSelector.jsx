@@ -76,17 +76,26 @@ export function ProviderSelector() {
         <Dropdown.Toggle
           variant="outline-secondary"
           size="sm"
+          className="w-100 text-start"
+          style={{
+            fontSize: '0.8rem',
+            padding: '0.5rem 0.75rem',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
           disabled={switching}
+          title={getProviderDisplayName(currentProvider, providers[currentProvider])} // Tooltip for full name
         >
-          {switching ? "🔄" : "🤖"} {getProviderDisplayName(currentProvider, providers[currentProvider]) || "No Provider"}
-          {currentProvider && providers[currentProvider]?.model && (
-            <Badge bg={getProviderBadgeColor(currentProvider)} className="ms-1">
-              {providers[currentProvider]?.model?.split("/").pop()}
-            </Badge>
-          )}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', flex: 1, minWidth: 0 }}>
+            {switching ? "🔄" : "🤖"} {getProviderDisplayName(currentProvider, providers[currentProvider]) || "No Provider"}
+          </span>
         </Dropdown.Toggle>
 
-        <Dropdown.Menu>
+        <Dropdown.Menu style={{ width: '100%' }}> {/* Remove minWidth to prevent overflow */}
           <Dropdown.Header>Available Providers</Dropdown.Header>
           {availableProviders.map((providerName) => (
             <Dropdown.Item
@@ -119,14 +128,14 @@ export function ProviderSelector() {
         <Modal.Body style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)' }}>
           <div className="provider-info">
             {Object.entries(providers).map(([name, info]) => (
-              <div 
-                key={name} 
+              <div
+                key={name}
                 className="provider-card mb-3 p-3 rounded"
                 style={{
-                  background: currentProvider === name 
+                  background: currentProvider === name
                     ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%)'
                     : 'rgba(255, 255, 255, 0.05)',
-                  border: currentProvider === name 
+                  border: currentProvider === name
                     ? '2px solid rgba(139, 92, 246, 0.5)'
                     : '1px solid rgba(255, 255, 255, 0.1)',
                 }}

@@ -7,7 +7,7 @@ const ChatContext = createContext();
 // Smart title generation from user message
 const generateSmartTitle = (content) => {
   if (!content) return 'New Chat';
-  
+
   // Common action words to look for
   const actionPatterns = [
     { pattern: /create\s+(?:a\s+)?(.{1,30})/i, prefix: 'Create' },
@@ -46,13 +46,13 @@ const generateSmartTitle = (content) => {
     .replace(/^(hi|hello|hey|please|can you|could you|i want to|i need to)\s*/i, '')
     .replace(/[.!?]+$/, '')
     .trim();
-  
+
   // Capitalize and truncate
   title = title.charAt(0).toUpperCase() + title.slice(1);
   if (title.length > 45) {
     title = title.substring(0, 42) + '...';
   }
-  
+
   return title || 'New Chat';
 };
 
@@ -71,7 +71,7 @@ export const ChatContextProvider = ({ children }) => {
   const [pipelineError, setPipelineError] = useState(null);
   const sseRef = useRef(null);
   const pipelineTimeoutRef = useRef(null);
-  const PIPELINE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+  const PIPELINE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
   // Session management state
   const [currentSessionId, setCurrentSessionId] = useState(null);
@@ -162,23 +162,23 @@ export const ChatContextProvider = ({ children }) => {
     // Close SSE connection
     try { sseRef.current?.close?.(); } catch { }
     sseRef.current = null;
-    
+
     // Clear pipeline timeout
     if (pipelineTimeoutRef.current) {
       clearTimeout(pipelineTimeoutRef.current);
       pipelineTimeoutRef.current = null;
     }
-    
+
     // Notify backend to cancel (fire and forget)
     try {
-      fetch('/api/adk/cancel', { method: 'POST' }).catch(() => {});
+      fetch('/api/adk/cancel', { method: 'POST' }).catch(() => { });
     } catch { }
-    
+
     // Reset states
     setActiveAgent(null);
     setIsLoading(false);
     setPipelineProgress({ current: 0, total: 5, percentage: 0 });
-    
+
     if (showToast) {
       toast.warning('🛑 Generation stopped');
     }
@@ -215,15 +215,15 @@ export const ChatContextProvider = ({ children }) => {
         sseRef.current = ev;
         setPipelineError(null);
         setPipelineProgress({ current: 0, total: 5, percentage: 0 });
-        
+
         // Set pipeline timeout (5 minutes max)
         pipelineTimeoutRef.current = setTimeout(() => {
           stopStream(false);
           setMessages((prev) => [
             ...prev,
-            { id: Date.now() + 1, role: "assistant", content: "⏱️ **Pipeline timed out** after 5 minutes. Please try a simpler request or check the server logs.", timestamp: new Date(), provider: "error" },
+            { id: Date.now() + 1, role: "assistant", content: "⏱️ **Pipeline timed out** after 15 minutes. Please try a simpler request or check the server logs.", timestamp: new Date(), provider: "error" },
           ]);
-          toast.error('⏱️ Pipeline timed out after 5 minutes');
+          toast.error('⏱️ Pipeline timed out after 15 minutes');
         }, PIPELINE_TIMEOUT_MS);
 
         ev.addEventListener("agent.start", (e) => {
@@ -253,7 +253,7 @@ export const ChatContextProvider = ({ children }) => {
           try {
             const d = JSON.parse(e.data);
             setActiveAgent(d.agent);
-            
+
             // Update progress based on agent
             const agentOrder = ['BusinessAnalystAgent', 'CodeWriterAgent', 'CodeReviewerAgent', 'CodeRefactorerAgent', 'FileSaverAgent', 'TestingAgent'];
             const agentIndex = agentOrder.findIndex(a => d.agent?.includes(a.replace('Agent', '')));
@@ -261,7 +261,7 @@ export const ChatContextProvider = ({ children }) => {
               const progress = Math.round(((agentIndex + 1) / agentOrder.length) * 100);
               setPipelineProgress({ current: agentIndex + 1, total: agentOrder.length, percentage: progress });
             }
-            
+
             setAgentActivity((p) => [...p, {
               agent: d.agent,
               action: "started",
@@ -306,7 +306,7 @@ export const ChatContextProvider = ({ children }) => {
             const d = JSON.parse(e.data);
             setPipelineError(d.error || d.message || 'Unknown error');
             setProgressEvents((p) => [...p, { type: "error", data: d }]);
-            
+
             // Show user-friendly error
             const errorMessage = d.error || d.message || 'An error occurred';
             let friendlyMessage = '❌ ';
@@ -366,7 +366,7 @@ export const ChatContextProvider = ({ children }) => {
             setIsLoading(false);
           }
         });
-        
+
         // Handle SSE errors
         ev.onerror = (err) => {
           console.error('SSE error:', err);

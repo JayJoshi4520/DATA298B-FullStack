@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 export function ChatInput() {
   const [input, setInput] = useState("");
-  const { sendMessage, isLoading, mode } = useChat();
+  const { sendMessage, isLoading, mode, currentSessionId, messages } = useChat();
   const [contextFiles, setContextFiles] = useState([]);
   const [contextSize, setContextSize] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -49,18 +49,22 @@ export function ChatInput() {
     }
   }, []);
 
-  // Fetch context files (simulated - you can connect to real API)
+  // Fetch context files and token usage
   useEffect(() => {
     const fetchContext = async () => {
+      if (!currentSessionId) return;
+
       try {
-        // Simulated context - in real app, fetch from /api/context
-        const mockFiles = [
-          { name: 'App.jsx', size: 250 },
-          { name: 'ChatPanel.jsx', size: 180 },
-          { name: 'MultiAgentPanel.jsx', size: 450 },
-        ];
-        setContextFiles(mockFiles);
-        setContextSize(mockFiles.reduce((sum, f) => sum + f.size, 0));
+        const response = await fetch(`/api/chat/${currentSessionId}/context`);
+        if (response.ok) {
+          const data = await response.json();
+          setContextFiles(data.files || []);
+          // Update token usage if provided
+          if (data.tokenUsage) {
+            // We can use this to show total session tokens
+            setContextSize(data.tokenUsage.total || 0);
+          }
+        }
       } catch (err) {
         console.error('Failed to fetch context:', err);
       }
@@ -68,11 +72,14 @@ export function ChatInput() {
 
     if (mode === 'agent' || mode === 'ask') {
       fetchContext();
+      // Poll for updates every 10 seconds or when messages change
+      const interval = setInterval(fetchContext, 10000);
+      return () => clearInterval(interval);
     } else {
       setContextFiles([]);
       setContextSize(0);
     }
-  }, [mode]);
+  }, [mode, currentSessionId, messages.length]); // Re-fetch when messages change
 
   // Fetch workspace files when @ is typed
   useEffect(() => {
@@ -149,8 +156,8 @@ export function ChatInput() {
         }}>
           <div className="d-flex justify-content-between align-items-center mb-2">
             <div className="d-flex align-items-center gap-2">
-              <span style={{ 
-                fontSize: '0.85em', 
+              <span style={{
+                fontSize: '0.85em',
                 color: 'rgba(255, 255, 255, 0.9)',
                 display: 'flex',
                 alignItems: 'center',
@@ -171,8 +178,8 @@ export function ChatInput() {
                 <span style={{ cursor: 'help', fontSize: '0.75em', opacity: 0.6 }}>ⓘ</span>
               </OverlayTrigger>
             </div>
-            <span style={{ 
-              fontSize: '0.75em', 
+            <span style={{
+              fontSize: '0.75em',
               color: 'rgba(255, 255, 255, 0.7)',
               background: 'rgba(255, 255, 255, 0.1)',
               padding: '2px 8px',
@@ -186,8 +193,8 @@ export function ChatInput() {
           <ProgressBar
             now={(contextSize / maxContextSize) * 100}
             variant={contextSize > maxContextSize * 0.8 ? 'warning' : 'info'}
-            style={{ 
-              height: '4px', 
+            style={{
+              height: '4px',
               marginBottom: '10px',
               background: 'rgba(255, 255, 255, 0.1)',
               borderRadius: '2px',
@@ -215,8 +222,8 @@ export function ChatInput() {
               >
                 <span style={{ fontSize: '1em' }}>📄</span>
                 <span style={{ fontWeight: 500 }}>{file.name}</span>
-                <span style={{ 
-                  opacity: 0.6, 
+                <span style={{
+                  opacity: 0.6,
                   fontSize: '0.9em',
                   background: 'rgba(255, 255, 255, 0.1)',
                   padding: '1px 5px',

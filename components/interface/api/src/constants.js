@@ -5,8 +5,8 @@
 
 // Timeouts (in milliseconds)
 export const TIMEOUTS = {
-  ADK_PIPELINE: 300_000,          // 5 minutes - for ADK pipeline execution (increased)
-  OUTPUT_EXECUTION: 300_000,      // 5 minutes - for output.py execution
+  ADK_PIPELINE: 900_000,          // 15 minutes - for ADK pipeline execution (increased)
+  OUTPUT_EXECUTION: 900_000,      // 15 minutes - for output.py execution
   SSE_HEARTBEAT: 15_000,          // 15 seconds - Server-Sent Events heartbeat
   COMMAND_EXECUTION: 30_000,      // 30 seconds - general command execution
   LLM_REQUEST: 120_000,           // 2 minutes - LLM API request timeout (increased)
