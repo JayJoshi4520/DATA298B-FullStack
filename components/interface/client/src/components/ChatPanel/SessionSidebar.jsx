@@ -2,39 +2,61 @@ import { useState } from 'react';
 import { Offcanvas, ListGroup, Button, Badge, Form, ButtonGroup } from 'react-bootstrap';
 import { useChat } from '../../ChatContext';
 
-// Helper to safely format dates
+// Helper to safely format dates with relative time
 const formatDate = (dateStr) => {
   if (!dateStr) return 'Just now';
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return 'Just now';
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  // Show relative time for recent sessions
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  // Show date for older sessions
+  return date.toLocaleDateString();
 };
 
-// Generate a display name from session
+// Generate a display name from session with unique suffix
 const getSessionDisplayName = (session) => {
-  // If already has a proper name, use it
+  // Get base name
+  let baseName = 'New Chat';
+  
   if (session.name && session.name !== 'New Chat') {
-    return session.name;
-  }
-  
-  // Try to get name from first user message
-  const firstUserMsg = session.messages?.find(m => m.role === 'user');
-  if (firstUserMsg?.content) {
-    const content = firstUserMsg.content;
-    // Truncate and clean up
-    let title = content
-      .replace(/^(hi|hello|hey|please|can you|could you|i want to|i need to)\s*/i, '')
-      .replace(/[.!?]+$/, '')
-      .trim();
-    
-    if (title.length > 40) {
-      title = title.substring(0, 37) + '...';
+    baseName = session.name;
+  } else if (session.messages?.length > 0) {
+    // Try to get name from first user message
+    const firstUserMsg = session.messages.find(m => m.role === 'user');
+    if (firstUserMsg?.content) {
+      const content = firstUserMsg.content;
+      // Truncate and clean up
+      let title = content
+        .replace(/^(hi|hello|hey|please|can you|could you|i want to|i need to)\s*/i, '')
+        .replace(/[.!?]+$/, '')
+        .trim();
+      
+      if (title.length > 35) {
+        title = title.substring(0, 32) + '...';
+      }
+      
+      baseName = title.charAt(0).toUpperCase() + title.slice(1) || 'New Chat';
     }
-    
-    return title.charAt(0).toUpperCase() + title.slice(1) || 'New Chat';
   }
   
-  return 'New Chat';
+  // Add short ID suffix for uniqueness (last 4 chars of session ID)
+  const shortId = session.id ? session.id.slice(-4) : '';
+  if (shortId && baseName !== 'New Chat') {
+    return `${baseName} #${shortId}`;
+  }
+  
+  return baseName;
 };
 
 export function SessionSidebar({ show, onHide }) {
@@ -134,19 +156,30 @@ export function SessionSidebar({ show, onHide }) {
                 )}
                 
                 {editingId !== session.id && (
-                  <ButtonGroup size="sm" className="mt-2">
-                    <Button
-                      variant="outline-primary"
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         startEdit(session);
                       }}
                       title="Rename"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(167, 139, 250, 0.4)',
+                        background: 'rgba(139, 92, 246, 0.15)',
+                        color: '#a78bfa',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
                     >
-                      ✏️
-                    </Button>
-                    <Button
-                      variant="outline-danger"
+                      ✎
+                    </button>
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         if (window.confirm(`Delete "${getSessionDisplayName(session)}"?`)) {
@@ -154,10 +187,23 @@ export function SessionSidebar({ show, onHide }) {
                         }
                       }}
                       title="Delete"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(248, 113, 113, 0.4)',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        color: '#f87171',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
                     >
-                      🗑️
-                    </Button>
-                  </ButtonGroup>
+                      ✕
+                    </button>
+                  </div>
                 )}
               </ListGroup.Item>
             ))}
