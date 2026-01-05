@@ -15,7 +15,7 @@ export class ProjectAgent {
                 anthropic: { enabled: !!process.env.ANTHROPIC_API_KEY, apiKey: process.env.ANTHROPIC_API_KEY },
                 vertexai: { enabled: !!process.env.GOOGLE_APPLICATION_CREDENTIALS, projectId: process.env.GCP_PROJECT_ID, location: 'us-central1' }
             },
-            primary: process.env.LLM_PROVIDER || 'openai'
+            primary: process.env.LLM_PROVIDER
         }).catch(console.error);
     }
 

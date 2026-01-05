@@ -1,13 +1,9 @@
 import { fetch } from "undici";
 
-/**
- * EmbeddingProvider - Generates embeddings for semantic search
- * Uses Google's Gemini API for text embeddings
- */
 export class EmbeddingProvider {
   constructor() {
     this.apiKey = process.env.GOOGLE_API_KEY || process.env.LLM_API_KEY;
-    this.baseURL = process.env.LLM_BASE_URL || "https://generativelanguage.googleapis.com";
+    this.baseURL = process.env.LLM_BASE_URL;
     this.model = "text-embedding-004"; // Google's latest embedding model
     this.enabled = !!this.apiKey;
   }

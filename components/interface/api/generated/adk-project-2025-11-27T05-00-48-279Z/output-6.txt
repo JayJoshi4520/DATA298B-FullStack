@@ -1,4 +1,0 @@
-```bash
-  cd /home/coder/project/fitness_tracker
-  docker compose up --build
-  ```

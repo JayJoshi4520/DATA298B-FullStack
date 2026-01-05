@@ -16,7 +16,6 @@ export class WorkshopStore {
       );
     } catch (error) {
       console.log("=================== Signing key not found, some workshop features disabled ===================");
-      // Create a dummy key for development
       this.signingKey = "dummy-key-for-development";
     }
   }
@@ -37,7 +36,7 @@ export class WorkshopStore {
       }));
     } catch (error) {
       // Fallback for chat mode - create default config
-      console.log("=================== No labspace.yaml found, using default config for chat mode ===================");
+      console.log("=================== No yaml found, using default config for chat mode ===================");
       this.config = {
         title: "AI Development Assistant",
         description: "Interactive development environment with AI chat",

@@ -1130,7 +1130,7 @@ app.post("/api/multi-agent/run", async (req, res) => {
 
     if (!multiAgentOrchestrator) {
       return res.status(503).json({
-        error: "Multi-agent mode is not available. Please configure GOOGLE_API_KEY or LLM_API_KEY."
+        error: "Multi-agent mode is not available. Please configure LLM_API_KEY."
       });
     }
 

@@ -1,4 +1,0 @@
-
-
-3.  **Build and run the application using Docker Compose:**
-    

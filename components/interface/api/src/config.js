@@ -15,25 +15,23 @@ export class Config {
       primary: "qwen-coder", // Default to Qwen
       fallbacks: ["codellama", "mistral", "deepseek-coder"],
 
-      // Only expose the 4 fine-tuned models
       providers: {
         "qwen-coder": {
           enabled: true,
           name: "Qwen2.5-Coder.FT",
-          displayName: "Qwen2.5-Coder (Fine-Tuned)",
+          displayName: "Qwen2.5-Coder(Fine-Tuned)",
           model: "qwen2.5-coder-32b-instruct-ft",
           baseURL: `${VERTEX_BASE}/publishers/google/models/qwen-coder-ft`,
           maxTokens: 4096,
           supportsTools: true,
           provider: "vertexai",
-          // Internal: uses Gemini API
           _internalApiKey: INTERNAL_API_KEY,
         },
 
         "codellama": {
           enabled: true,
           name: "CodeLLaMA.FT",
-          displayName: "CodeLLaMA 34B (Fine-Tuned)",
+          displayName: "CodeLLaMA(Fine-Tuned)",
           model: "codellama-34b-instruct-ft",
           baseURL: `${VERTEX_BASE}/publishers/google/models/codellama-ft`,
           maxTokens: 4096,
@@ -45,7 +43,7 @@ export class Config {
         "mistral": {
           enabled: true,
           name: "Mistral.FT",
-          displayName: "Mistral Large (Fine-Tuned)",
+          displayName: "Mistral(Fine-Tuned)",
           model: "mistral-large-instruct-ft",
           baseURL: `${VERTEX_BASE}/publishers/google/models/mistral-ft`,
           maxTokens: 4096,
@@ -57,7 +55,7 @@ export class Config {
         "deepseek-coder": {
           enabled: true,
           name: "DeepSeek-Coder.FT",
-          displayName: "DeepSeek Coder 33B (Fine-Tuned)",
+          displayName: "DeepSeek-Coder(Fine-Tuned)",
           model: "deepseek-coder-33b-instruct-ft",
           baseURL: `${VERTEX_BASE}/publishers/google/models/deepseek-coder-ft`,
           maxTokens: 4096,

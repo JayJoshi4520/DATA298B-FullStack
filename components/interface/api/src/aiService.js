@@ -50,7 +50,6 @@ export class AIService {
           supportsTools: config.supportsTools || false,
           maxTokens: config.maxTokens,
           provider: config.provider || "vertexai",
-          // Never expose internal API keys
         };
       }
     }

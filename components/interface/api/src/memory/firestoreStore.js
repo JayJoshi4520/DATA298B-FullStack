@@ -104,7 +104,7 @@ export class FirestoreStore {
             success,
             timestamp: new Date().toISOString()
         });
-        
+
         // Increment tool run counter on session document for easy stats
         const sessionRef = this.db.collection('sessions').doc(sessionId);
         const sessionDoc = await sessionRef.get();
@@ -171,7 +171,7 @@ export class FirestoreStore {
             const sessionsSnapshot = await this.db.collection('sessions').get();
             let totalMessages = 0;
             let totalToolRuns = 0;
-            
+
             sessionsSnapshot.docs.forEach(doc => {
                 const data = doc.data();
                 // Count messages from doc level first, then metadata
@@ -182,7 +182,7 @@ export class FirestoreStore {
                 } else if (data.metadata?.messages?.length) {
                     totalMessages += data.metadata.messages.length;
                 }
-                
+
                 // Count tool runs from doc level counter
                 if (data.toolRunCount) {
                     totalToolRuns += data.toolRunCount;
@@ -190,7 +190,7 @@ export class FirestoreStore {
             });
 
             const totalSessions = sessionsSnapshot.size;
-            
+
             // Safe count for users
             let totalUsers = 0;
             try {
@@ -200,7 +200,7 @@ export class FirestoreStore {
                 // Users collection may not exist
                 totalUsers = 0;
             }
-            
+
             // Safe count for memories
             let totalMemories = 0;
             try {
@@ -272,21 +272,35 @@ export class FirestoreStore {
     async listSessions({ userId, limit = 50 }) {
         try {
             let ref = this.db.collection('sessions');
+            // NOTE: We sort in-memory to avoid requiring a composite index (userId + updatedAt)
+            // This is acceptable for development/low-volume usage.
             if (userId) {
                 ref = ref.where('userId', '==', userId);
             }
-            const snapshot = await ref.orderBy('updatedAt', 'desc').limit(limit).get();
 
-            return snapshot.docs.map(doc => ({
+            // Fetch more than limit to ensure we get recent ones before in-memory sort
+            // (Without orderBy, Firestore returns essentially random order or ID order)
+            const snapshot = await ref.limit(limit * 4).get();
+
+            const sessions = snapshot.docs.map(doc => ({
                 id: doc.id,
                 userId: doc.data().userId,
                 projectId: doc.data().projectId,
                 createdAt: doc.data().createdAt,
                 updatedAt: doc.data().updatedAt,
                 summary: doc.data().summary,
-                metadata: doc.data().metadata,  // Include metadata for frontend
+                metadata: doc.data().metadata,
                 messageCount: doc.data().messageCount || doc.data().metadata?.messageCount || doc.data().metadata?.messages?.length || 0
             }));
+
+            // Sort in-memory (descending)
+            sessions.sort((a, b) => {
+                const dateA = new Date(a.updatedAt || 0);
+                const dateB = new Date(b.updatedAt || 0);
+                return dateB - dateA;
+            });
+
+            return sessions.slice(0, limit);
         } catch (error) {
             console.error("Firestore listSessions error:", error);
             throw error;

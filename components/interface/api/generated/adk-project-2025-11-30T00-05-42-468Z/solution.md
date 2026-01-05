@@ -1,8 +1,0 @@
-ISSUES FOUND:
-- The frontend is scaffolded using `react-scripts` (Create React App), which is explicitly forbidden by the strict review guidelines ("REJECT if using ... create-react-app without Vite"). The project must use Vite (`vite`, `@vitejs/plugin-react`) instead of `react-scripts`.
-- `frontend/package.json` is missing the required scripts: `dev` and `preview`. It currently uses the old `start` script convention from CRA.
-- `frontend/vite.config.js` is missing. A valid Vite configuration file is required.
-- `frontend/public/index.html` is located in the `public` folder. In a modern Vite project, `index.html` must be in the project root (`frontend/index.html`) and must import the entry point using standard ES modules syntax (e.g., `<script type="module" src="/src/index.js"></script>`).
-- `frontend/src/App.js` uses `process.env.REACT_APP_API_URL`. Vite projects use `import.meta.env.VITE_API_URL` and do not support `process.env` (without polyfills) or `REACT_APP_` prefixes by default.
-- `frontend/src/index.js` uses `document.getElementById('root')` which works, but the file extension and import in HTML should ideally align with Vite's standards (often `.jsx` for React components, though `.js` works if configured).
-- `frontend/Dockerfile` uses `npm start` which is associated with the missing script. It should use `npm run dev` (configured to expose the host) or a production build/serve setup. Note that for dev mode in Docker with Vite, you need `--host`.

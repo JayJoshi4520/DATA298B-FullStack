@@ -1,65 +1,98 @@
-# Multi Agent Collaboration 
+# Multi-Agent SDE (Software Development Environment)
 
-## Try it out
+A powerful multi-agent system for autonomous software development, featuring an orchestrator, specialist agents (Business Analyst, Code Writer, Reviewer, etc.), and a collaborative workspace.
 
-1. Clone the git Repo using
-3. Create below .env file inside ```/components/interface/api```, NOTE: for testing only change the API KEY of LLM_API_KEY
-```
-# ======================
-# LLM PROVIDER CONFIGURATION
-# ======================
-LLM_PRIMARY_PROVIDER=vertexai
+## 🚀 Quick Start
 
-# ======================
-# GOOGLE VERTEXAI CONFIGURATION
-# ======================
-GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/sa.json
-GOOGLE_GENAI_USE_VERTEXAI=false
-GCS_BUCKET_NAME="data298b-project-store"
-LLM_MODEL=projects/excellent-hue-472000-n4/locations/us-east-4/endpoints/3088198308934451200
-GOOGLE_CLOUD_PROJECT=excellent-hue-472000-n4
-GOOGLE_CLOUD_LOCATION=us-east4
-LLM_API_KEY=YOUR_API_KEY
-LLM_BASE_URL=https://generativelanguage.googleapis.com
-LLM_MAX_TOKENS=4000
+### 1. Prerequisites
+- **Docker Desktop** (running)
+- **Node.js** (v18+)
+- **Google Cloud SDK** (`gcloud` CLI) - [Install Guide](https://cloud.google.com/sdk/docs/install)
 
-# ======================
-# SERVER CONFIGURATION
-# ======================
-NODE_ENV=development
-PORT=3030
-PROJECT_ROOT=/home/coder/project
-COMMAND_TIMEOUT=30000
-MAX_FILE_SIZE=1048576
-
-# Development options
-DEV_MODE=true
-ENABLE_MOCK_AI=false
-DEBUG=true
-
-```
-Create below .env file inside ```/components/interface/client```
-```
-VITE_FIREBASE_API_KEY=""
-VITE_FIREBASE_AUTH_DOMAIN=""
-VITE_FIREBASE_PROJECT_ID="" 
-VITE_FIREBASE_STORAGE_BUCKET=""
-VITE_FIREBASE_MESSAGING_SENDER_ID=""
-VITE_FIREBASE_APP_ID=""
+### 2. Clone the Repository
+```bash
+git clone <repo-url>
+cd Multi_Agent_SDE
 ```
 
-4. Run docker command ```docker compose build && docker compose up```
+### 3. Setup Authentication (Required)
+This project uses Google Cloud services (Vertex AI, Firestore, GCS). You must authenticate your local environment.
 
-Once the containers have started, open your browser to http://localhost:5173 and you’ll see the Workspace!,
+**Step 1: Login**
+Run the following command and login with your Google account:
+```powershell
+gcloud auth application-default login
+```
+*This will generate an `application_default_credentials.json` file on your system.*
 
-To Test backend API use http://localhost:3030 using Postman.
+**Step 2: Provide Credentials to Container**
+Copy the generated file to the project's API directory:
 
-Click the **Load VS Code here** button to display the VS Code IDE in the right side panel.
+**Windows (Powershell):**
+```powershell
+copy "$env:APPDATA\gcloud\application_default_credentials.json" "components\interface\api\sa.json"
+```
 
+**Mac/Linux:**
+```bash
+cp ~/.config/gcloud/application_default_credentials.json components/interface/api/sa.json
+```
 
-## Known limitations
+### 4. Configuration
+Create the necessary environment files.
 
-- Running multiple workspace concurrently is not supported at this time on the same machine
+**API Service:**
+1.  Copy the example file:
+    ```bash
+    cp components/interface/api/.env.example components/interface/api/.env
+    ```
+2.  **Edit `components/interface/api/.env`**:
+    *   **Google Cloud Basics**: Set `GOOGLE_CLOUD_PROJECT` (Project ID) and `GCS_BUCKET_NAME`.
+    *   **Authentication**: Ensure `GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/sa.json` is set (required for Firestore/GCS).
+    *   **LLM Provider**:
+        *   **Option A (Vertex AI)**: Set `GOOGLE_GENAI_USE_VERTEXAI=true`. Uses the credentials from step 3.
+        *   **Option B (AI Studio API Key)**: Set `GOOGLE_GENAI_USE_VERTEXAI=false` and provide `GOOGLE_API_KEY`.
+
+**Client Service:**
+1.  Copy the example file:
+    ```bash
+    cp components/interface/client/.env.example components/interface/client/.env
+    ```
+2.  (Optional) Add Firebase config if needed.
+
+### 5. Run the Project
+Start all services using Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+- **Frontend**: Open [http://localhost:5173](http://localhost:5173) to verify the workspace.
+- **Backend API**: Running on [http://localhost:3030](http://localhost:3030).
+- **VS Code**: Click "Load VS Code here" in the UI to access the agent's workspace.
+
+---
+
+## 🏗️ Architecture
+
+![System Architecture](assets/architecture_diagram.png)
+
+- **Interface API**: Node.js/Express service that orchestrates the Multi-Agent system (ADK).
+- **Interface Client**: React/Vite frontend for user interaction.
+- **Configurator**: Manages environment setup.
+- **Workspace**: A containerized development environment where agents write and test code.
+
+## 🛠️ Troubleshooting
+
+**"Could not load the default credentials"**
+- Ensure you ran `gcloud auth application-default login`.
+- Ensure you copied the file to `components/interface/api/sa.json`.
+- Ensure `compose.yaml` mounts this file to `/var/secrets/sa.json`.
+
+**"FAILED_PRECONDITION: The query requires an index"**
+- This project is configured to sort sessions in-memory to avoid this error. If you see it, ensure you have the latest code in `src/memory/firestoreStore.js`.
+
+---
 
 # Example Prompts
 

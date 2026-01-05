@@ -1,7 +1,4 @@
-/**
- * Application Constants
- * Centralized configuration values and magic numbers
- */
+
 
 // Timeouts (in milliseconds)
 export const TIMEOUTS = {

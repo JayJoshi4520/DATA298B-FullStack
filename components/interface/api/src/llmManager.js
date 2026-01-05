@@ -53,7 +53,6 @@ export class LLMManager {
       case "ollama":
         return new OllamaProvider(config);
       default:
-        // Generic provider for custom endpoints
         return new GenericProvider({ ...config, name });
     }
   }

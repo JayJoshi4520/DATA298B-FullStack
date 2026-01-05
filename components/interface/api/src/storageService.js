@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 
 const storage = new Storage();
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'avirit-projects'; // Default or env var
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME; // Default or env var
 
 export async function uploadFile(filePath, destination) {
     try {

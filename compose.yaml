@@ -77,7 +77,6 @@ services:
         - path: ./components/interface/client/package-lock.json
           action: rebuild
 
-
   vscode-extension:
     build: ./components/support-vscode-extension
 
@@ -92,9 +91,9 @@ services:
       socket-proxy:
         condition: service_started
     ports:
-      - 8085:8085  
-      - 3000:3000 
-      - 8086:8086 
+      - 8085:8085
+      - 3000:3000
+      - 8086:8086
     volumes:
       - socket-proxy:/var/run
       - ./sample-content-repo:/home/coder/project
@@ -200,6 +199,7 @@ volumes:
   content:
     name: labspace-content
   support-vscode-extension:
+
 
 networks:
   default:

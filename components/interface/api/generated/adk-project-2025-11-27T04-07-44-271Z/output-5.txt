@@ -1,4 +1,0 @@
-
-
-2.  **Navigate into the newly created project directory:**
-    
